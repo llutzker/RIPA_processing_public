@@ -1,0 +1,647 @@
+ORI,AGENCY_NAME,Type
+CA0010000,Alameda County Sheriff's Department,2
+CA0010100,Alameda Police Department,3
+CA001013A,ALAMEDA CO DA,5
+CA001013G,Alameda County Probation Department ,5
+CA0010200,Albany Police Department,3
+CA0010300,Berkeley Police Department,3
+CA0010400,Emeryville Police Department,3
+CA0010500,Fremont Police Department,3
+CA0010600,Hayward Police Department,3
+CA0010700,Livermore Police Department,3
+CA0010800,Newark Police Department,3
+CA0010900,Oakland Police Department,3
+CA0011000,Piedmont Police Department,3
+CA0011100,Pleasanton Police Department,3
+CA0011200,San Leandro Police Department,3
+CA0011300,Union City Police Department,3
+CA0011400,Alameda E. Bay Reg. Park Dist.,5
+CA0011500,CSU East Bay Police Department,4
+CA0012100,BART Police Department,5
+CA0013300,OAKLAND HOUSING AUTHORITY,5
+CA0019700,UC Berkeley Police Department,4
+CA0020000,Alpine County Sheriff's Department,2
+CA0030000,Amador County Sheriff's Department,2
+CA003013A,AMADOR CO DISTRICT ATTORNEY'S OFFICE,5
+CA003013G,Amador County Probation Department ,5
+CA0030200,Ione Police Department,3
+CA0030300,Jackson Police Department,3
+CA0030500,Sutter Creek Police Department,3
+CA0040000,Butte County Sheriff's Department,2
+CA004013A,BUTTE CO DISTRICT ATTORNEY'S OFFICE,5
+CA004013G,Butte County Probation Department ,5
+CA0040200,Chico Police Department,3
+CA0040300,Gridley Police Department,3
+CA0040400,Oroville Police Department,3
+CA0040500,Paradise Police Department,3
+CA0041100,"BUTTE COMMUNITY COLLEGE PD	",4
+CA0049700,CSU Chico Police Department,4
+CA0050000,Calaveras County Sheriff's Department,2
+CA0050100,Angels Camp Police Department,3
+CA005013A,CALAVERAS CO DISTRICT ATTORNEY'S OFFICE,5
+CA005013G,Calaveras County Probation Department ,5
+CA0060000,Colusa County Sheriff's Department,2
+CA0060100,Colusa Police Department,3
+CA006013A,COLUSA CO DISTRICT ATTORNEY'S OFFICE,5
+CA006013G,Colusa County Probation Department ,5
+CA0060200,Williams Police Department,3
+CA0070000,Contra Costa County Sheriff's Department,2
+CA0070100,Antioch Police Department,3
+CA007013G,Contra Costa County Probation Department ,5
+CA0070200,Brentwood Police Department,3
+CA0070300,Clayton Police Department,3
+CA0070400,Concord Police Department,3
+CA0070500,El Cerrito Police Department,3
+CA0070600,Hercules Police Department,3
+CA0070700,Pinole Police Department,3
+CA0070800,Pittsburg Police Department,3
+CA0070900,Pleasant Hill Police Department,3
+CA0071000,Richmond Police Department,3
+CA0071100,San Pablo Police Department,3
+CA0071200,Walnut Creek Police Department,3
+CA0071400,Martinez Police Department,3
+CA0071600,Moraga Police Department,3
+CA0072100,Contra Costa Community College Police Department,4
+CA0073400,Oakley Police Department,3
+CA0074000,San Ramon Police Department,3
+CA0080000,Del Norte County Sheriff's Department,2
+CA0080100,Crescent City Police Department,3
+CA008013G,Del Norte County Probation Department ,5
+CA0090000,El Dorado County Sheriff's Department,2
+CA0090100,Placerville Police Department,3
+CA009013A,EL DORADO CO DISTRICT ATTORNEY'S OFFICE,5
+CA009013G,El Dorado County Probation Department ,5
+CA0090200,South Lake Tahoe Police Department,3
+CA0100000,Fresno County Sheriff's Department,2
+CA0100100,Clovis Police Department,3
+CA010013G,Fresno County Probation Department ,5
+CA0100200,Coalinga Police Department,3
+CA010023A,FRESNO CO DA,5
+CA0100300,Firebaugh Police Department,3
+CA0100400,Fowler Police Department,3
+CA0100500,Fresno Police Department,3
+CA0100600,Huron Police Department,3
+CA0100700,Kerman Police Department,3
+CA0100800,Kingsburg Police Department,3
+CA0100900,Mendota Police Department,3
+CA0101000,Orange Cove Police Department,3
+CA0101100,Parlier Police Department,3
+CA0101200,Reedley Police Department,3
+CA0101300,Sanger Police Department,3
+CA0101500,Selma Police Department,3
+CA0109700,CSU Fresno Police Department,4
+CA010M100,COALINGA STATE HOSPITAL,5
+CA0110000,Glenn County Sheriff's Department,2
+CA0110100,Orland Police Department,3
+CA011013G,Glenn County Probation Department ,5
+CA0120000,Humboldt County Sheriff's Department,2
+CA0120100,Arcata Police Department,3
+CA012013G,Humboldt County Probation Department ,5
+CA0120300,Eureka Police Department,3
+CA0120400,Ferndale Police Department,3
+CA0120500,Fortuna Police Department,3
+CA0120700,Rio Dell Police Department,3
+CA0120800,CSU Humboldt Police Department,4
+CA0130000,Imperial County Sheriff's Department,2
+CA0130100,Brawley Police Department,3
+CA013013A,IMPERIAL CO DA,5
+CA0130200,Calexico Police Department,3
+CA013023G,Imperial County Probation Department ,5
+CA0130400,El Centro Police Department,3
+CA0130600,Imperial Police Department,3
+CA0140000,Inyo County Sheriff's Department,2
+CA0140100,Bishop Police Department,3
+CA014013G,Inyo County Probation Department ,5
+CA0150000,Kern County Sheriff's Department,2
+CA0150100,Arvin Police Department,3
+CA015013A,KERN CO DISTRICT ATTORNEY'S OFFICE,5
+CA015013G,Kern County Probation Department ,5
+CA0150200,Bakersfield Police Department,3
+CA0150300,Delano Police Department,3
+CA0150500,McFarland Police Department,3
+CA0150600,Ridgecrest Police Department,3
+CA0150700,Shafter Police Department,3
+CA0150800,Taft Police Department,3
+CA0150900,Tehachapi Police Department,3
+CA0151100,California City Police Department,3
+CA0151200,CSU Bakersfield Police Department,4
+CA0151400,Stallion Springs Police Department,3
+CA0151500,Bear Valley Police Department,3
+CA0152100,Kern County High School District Police Department,5
+CA0160000,Kings County Sheriff's Department,2
+CA0160100,Corcoran Police Department,3
+CA016013G,Kings County Probation Department ,5
+CA0160200,Hanford Police Department,3
+CA0160300,Lemoore Police Department,3
+CA0160800,Avenal Police Department,3
+CA0170000,Lake County Sheriff's Department,2
+CA0170100,Lakeport Police Department,3
+CA017013G,Lake County Probation Department ,5
+CA0170200,Clearlake Police Department,3
+CA0180000,Lassen County Sheriff's Department,2
+CA0180100,Susanville Police Department,3
+CA018013A,Lassen County District Attorney,5
+CA018013G,Lassen County Probation Department ,5
+CA0190000,Los Angeles County Sheriff's Department,2
+CA0190100,Alhambra Police Department,3
+CA019013A,LOS ANGELES CO DISTRICT ATTORNEY'S OFFICE,5
+CA019013G,Los Angeles County Probation Department ,5
+CA0190200,Arcadia Police Department,3
+CA0190500,Azusa Police Department,3
+CA0190600,Baldwin Park Police Department,3
+CA0190700,Bell Police Department,3
+CA0190900,Bell Gardens Police Department,3
+CA0190B00,LOS ANGELES UNIFIED SCHOOL DISTRICT PD,5
+CA0190C00,El Camino College Police Department,4
+CA0190J00,LOS ANGELES WORLD AIRPORT PD,5
+CA0190R00,Pasadena Community College Police Department,4
+CA0191000,Beverly Hills Police Department,3
+CA019105Y,CA FRANCHISE TAX BD - INVEST.,5
+CA0191200,Burbank Police Department,3
+CA0191300,Claremont Police Department,3
+CA0191600,Covina Police Department,3
+CA0191800,Culver City Police Department,3
+CA0192000,Downey Police Department,3
+CA0192200,El Monte Police Department,3
+CA0192300,El Segundo Police Department,3
+CA0192400,Gardena Police Department,3
+CA0192500,Glendale Police Department,3
+CA0192600,Glendora Police Department,3
+CA0192800,Hawthorne Police Department,3
+CA0192900,Hermosa Beach Police Department,3
+CA0193100,Huntington Park Police Department,3
+CA0193300,Inglewood Police Department,3
+CA0193400,Irwindale Police Department,3
+CA0193800,La Verne Police Department,3
+CA0193I00,GLENDALE COMMUNITY COLLEGE PD,4
+CA0194100,Long Beach Police Department,3
+CA0194200,Los Angeles Police Department,3
+CA0194400,Manhattan Beach Police Department,3
+CA0194600,Monrovia Police Department,3
+CA0194800,Monterey Park Police Department,3
+CA0195100,Palos Verdes Estates Police Department,3
+CA0195300,Pasadena Police Department,3
+CA0195500,Pomona Police Department,3
+CA0195600,Redondo Beach Police Department,3
+CA0196100,San Fernando Police Department,3
+CA0196200,San Gabriel Police Department,3
+CA0196300,San Marino Police Department,3
+CA0196500,Santa Monica Police Department,3
+CA0196600,Sierra Madre Police Department,3
+CA0196700,Signal Hill Police Department,3
+CA0196900,South Gate Police Department,3
+CA0197000,South Pasadena Police Department,3
+CA0197200,Torrance Police Department,3
+CA0197300,Vernon Police Department,3
+CA0197500,West Covina Police Department,3
+CA0197600,Whittier Police Department,3
+CA0197800,Cal Poly - Pomona Police Department,4
+CA0198100,CSU Dominguez Hills Police Department,4
+CA0198200,CSU Long Beach Police Department,4
+CA0198300,CSU Los Angeles Police Department,4
+CA0198400,CSU Northridge Police Department,4
+CA0198800,LOS ANGELES HARBOR PD - PORT POLICE,5
+CA0199700,UC Los Angeles Police Department,4
+CA019A700,LONG BEACH FIRE DEPT-INVESTIGATIONS,5
+CA019A800,SANTA MONICA COLLEGE PD,4
+CA019A900,METROPOLITAN STATE HOSPITAL,5
+CA0200000,Madera County Sheriff's Department,2
+CA0200100,Chowchilla Police Department,3
+CA020013A,MADERA CO DA,5
+CA020013G,Madera County Probation Department ,5
+CA0200200,Madera Police Department,3
+CA0210000,Marin County Sheriff's Department,2
+CA0210100,Belvedere Police Department,3
+CA021013A,MARIN CO DISTRICT ATTORNEY'S OFFICE,5
+CA021013G,Marin County Probation Department ,5
+CA0210300,Fairfax Police Department,3
+CA0210500,Mill Valley Police Department,3
+CA0210600,Novato Police Department,3
+CA0210700,Ross Police Department,3
+CA0210900,San Rafael Police Department,3
+CA0211000,Sausalito Police Department,3
+CA0211100,Tiburon Police Department,3
+CA0211300,Marin Community College Police Department,4
+CA0211700,Central Marin Police Authority,5
+CA0220000,Mariposa County Sheriff's Department,2
+CA022013A,MARIPOSA CO DA,5
+CA022013G,Mariposa County Probation Department ,5
+CA0230000,Mendocino County Sheriff's Department,2
+CA0230100,Fort Bragg Police Department,3
+CA023013A,"MENDOCINO CO DISTRICT ATTORNEY'S OFFICE	",5
+CA023013G,Mendocino County Probation Department ,5
+CA0230300,Ukiah Police Department,3
+CA0230400,Willits Police Department,3
+CA0240000,Merced County Sheriff's Department,2
+CA024013A,MERCED CO DISTRICT ATTORNEY'S OFFICE,5
+CA024013G,Merced County Probation Department ,5
+CA0240200,Dos Palos Police Department,3
+CA0240300,Gustine Police Department,3
+CA0240400,Livingston Police Department,3
+CA0240500,Los Banos Police Department,3
+CA0240600,Merced Police Department,3
+CA0241200,UC Merced Police Department,4
+CA0250000,Modoc County Sheriff's Department,2
+CA0250100,Alturas Police Department,3
+CA025013G,Modoc County Probation Department ,5
+CA0260000,Mono County Sheriff's Department,2
+CA0260100,Mammoth Lakes Police Department,3
+CA026013G,Mono County Probation Department ,5
+CA0270000,Monterey County Sheriff's Department,2
+CA0270100,Carmel Police Department,3
+CA027013G,Monterey County Probation Department ,5
+CA0270200,Del Rey Oaks Police Department,3
+CA0270300,Gonzales Police Department,3
+CA0270400,Greenfield Police Department,3
+CA0270500,King City Police Department,3
+CA0270600,Monterey Police Department,3
+CA0270700,Pacific Grove Police Department,3
+CA0270800,Salinas Police Department,3
+CA0270900,Sand City Police Department,3
+CA0271000,Seaside Police Department,3
+CA0271100,Soledad Police Department,3
+CA0271200,Marina Police Department,3
+CA0271900,CSU Monterey Bay Police Department,4
+CA0280000,Napa County Sheriff's Department,2
+CA0280100,Calistoga Police Department,3
+CA028013A,NAPA CO DISTRICT ATTORNEY'S OFFICE,5
+CA0280200,Napa Police Department,3
+CA0280300,St. Helena Police Department,3
+CA028033G,NAPA COUNTY PROBATION,5
+CA0280900,NAPA VALLEY COLLEGE PD,4
+CA0290000,Nevada County Sheriff's Department,2
+CA0290100,Grass Valley Police Department,3
+CA029013G,Nevada County Probation Department ,5
+CA0290200,Nevada City Police Department,3
+CA0290800,Truckee Police Department,3
+CA0300000,Orange County Sheriff's Department,2
+CA0300100,Anaheim Police Department,3
+CA030013A,ORANGE CO DISTRICT ATTORNEY'S OFFICE,5
+CA030013G,Orange County Probation Department ,5
+CA0300200,Brea Police Department,3
+CA0300300,Buena Park Police Department,3
+CA0300400,Costa Mesa Police Department,3
+CA0300500,Cypress Police Department,3
+CA0300600,La Palma Police Department,3
+CA0300700,Fountain Valley Police Department,3
+CA0300800,Fullerton Police Department,3
+CA0300900,Garden Grove Police Department,3
+CA0301000,Huntington Beach Police Department,3
+CA0301100,Laguna Beach Police Department,3
+CA0301200,La Habra Police Department,3
+CA0301300,Los Alamitos Police Department,3
+CA0301400,Newport Beach Police Department,3
+CA0301500,Orange Police Department,3
+CA0301600,Placentia Police Department,3
+CA0301900,Santa Ana Police Department,3
+CA0302000,Seal Beach Police Department,3
+CA0302200,Tustin Police Department,3
+CA0302400,Westminster Police Department,3
+CA0302600,Irvine Police Department,3
+CA0302700,CSU Fullerton Police Department,4
+CA0309700,UC Irvine Police Department,4
+CA0310000,Placer County Sheriff's Department,2
+CA0310100,Auburn Police Department,3
+CA031013A,PLACER CO DISTRICT ATTORNEY'S OFFICE,5
+CA031013G,Placer County Probation Department ,5
+CA0310300,Lincoln Police Department,3
+CA0310400,Rocklin Police Department,3
+CA0310500,Roseville Police Department,3
+CA0320000,Plumas County Sheriff's Department,2
+CA032013A,PLUMAS CO DISTRICT ATTORNEY'S OFFICE,5
+CA032013G,Plumas County Probation Department ,5
+CA0330000,Riverside County Sheriff's Department,2
+CA0330100,Banning Police Department,3
+CA033013A,RIVERSIDE CO DISTRICT ATTORNEY'S OFFICE,5
+CA033013G,Riverside County Probation Department ,5
+CA0330200,Beaumont Police Department,3
+CA0330300,Blythe Police Department,3
+CA0330600,Desert Hot Springs Police Department,3
+CA0330800,Hemet Police Department,3
+CA0330900,Indio Police Department,3
+CA0331100,Palm Springs Police Department,3
+CA0331300,Riverside Police Department,3
+CA0331500,Corona Police Department,3
+CA0332500,Cathedral City Police Department,3
+CA0334200,Murrieta Police Department,3
+CA0334400,RIVERSIDE COMMUNITY COLLEGE POLICE DEPARTMENT,4
+CA0334900,Menifee Police Department,3
+CA0339700,UC Riverside Police Department,4
+CA0340000,Sacramento County Sheriff's Department,2
+CA0340100,Folsom Police Department,3
+CA034013A,SACRAMENTO CO DISTRICT ATTORNEY'S OFFICE,5
+CA034013G,Sacramento County Probation Department ,5
+CA0340200,Galt Police Department,3
+CA034035G,CA DEPT OF CORRECTIONS AND REHABILITATION,5
+CA0340400,Sacramento Police Department,3
+CA0340500,CA DEPT FORESTRY AND FIRE PROTECTION,5
+CA0340740,CA DEPT OF MOTOR VEHICLES,5
+CA0340800,CSU Sacramento Police Department,4
+CA0340C00,Sacramento County Regional Parks,5
+CA0340H00,Elk Grove Police Department,3
+CA0341200,CA PARKS AND RECREATION,5
+CA0341300,CA DEPT OF INSURANCE - FRAUD INVEST DIV,5
+CA0341400,Twin Rivers Unified School District Police,3
+CA0341600,DEPARTMENT OF HEALTH CARE SERVICES,5
+CA0341900,CA DEPT FISH AND WILDLIFE,5
+CA0341A00,CA ALCOHOLIC BEVERAGE CONTROL,5
+CA0342000,CA State Fair,5
+CA0342100,SACRAMENTO CO WELFARE DEPT - WARR REPOS,5
+CA0344600,CA SECRETARY OF STATE - INVESTIGATIONS,5
+CA0345400,Los Rios Police Department,4
+CA0349477,CA DEPT OF JUSTICE - BI SACRAMENTO,5
+CA0349600,Citrus Heights Police Department,3
+CA0349902,CA Highway Patrol - Sacramento,1
+CA0350000,San Benito County Sheriff's Department,2
+CA0350100,Hollister Police Department,3
+CA035013G,San Benito County Probation Department ,5
+CA0360000,San Bernardino County Sheriff's Department,2
+CA036013G,San Bernardino County Probation Department ,5
+CA0360200,Chino Police Department,3
+CA036023A,SAN BERNARDINO CO DISTRICT ATTORNEY,5
+CA0360300,Colton Police Department,3
+CA0360400,Fontana Police Department,3
+CA0360500,Montclair Police Department,3
+CA0360700,Ontario Police Department,3
+CA0360800,Redlands Police Department,3
+CA0360900,Rialto Police Department,3
+CA0361000,San Bernardino Police Department,3
+CA0361100,Upland Police Department,3
+CA0361400,CSU San Bernardino Police Department,4
+CA0362600,CHAFFEY COMMUNITY COLLEGE PD,4
+CA0365000,Fontana Unified School District Police,5
+CA0365200,Redlands Fire Department/Arson Unit,5
+CA0370000,San Diego County Sheriff's Department,2
+CA0370100,Carlsbad Police Department,3
+CA037013G,San Diego County Probation Department ,5
+CA0370200,Chula Vista Police Department,3
+CA0370300,Coronado Police Department,3
+CA0370500,El Cajon Police Department,3
+CA0370600,Escondido Police Department,3
+CA0370800,La Mesa Police Department,3
+CA0370900,National City Police Department,3
+CA0371000,Oceanside Police Department,3
+CA0371100,San Diego Police Department,3
+CA0371400,CSU San Diego Police Department,3
+CA0371500,San Diego Harbor,5
+CA0373200,CSU San Marcos Police Department,4
+CA0379700,UC San Diego Police Department,4
+CA037A600,MiraCosta College Police,4
+CA037A700,PALOMAR COMMUNITY COLLEGE PD,4
+CA0380000,SAN FRANCISCO COUNTY SHERIFF'S OFFICE,2
+CA0380100,San Francisco Police Department,3
+CA038013G,San Francisco County Adult Probation Department ,5
+CA038023G,San Francisco Juvenile Probation Department,5
+CA0380300,CSU San Francisco Police Department,4
+CA0381700,SAN FRANCISCO COMMUNITY COLLEGE PD,4
+CA0389700,UC San Francisco Police Department,4
+CA0390000,San Joaquin County Sheriff's Department,2
+CA0390100,Escalon Police Department,3
+CA039013G,San Joaquin County Probation Department ,5
+CA0390200,Lodi Police Department,3
+CA039023A,SAN JOAQUIN CO DISTRICT ATTORNEY'S OFFICE,5
+CA0390300,Manteca Police Department,3
+CA0390400,Ripon Police Department,3
+CA0390500,Stockton Police Department,3
+CA0390600,Tracy Police Department,3
+CA0390800,San Joaquin Delta College,4
+CA0391500,Stockton Unified School District Police,5
+CA0392400,Lathrop Police Department,3
+CA0400000,San Luis Obispo County Sheriff's Department,2
+CA0400100,Arroyo Grande Police Department,3
+CA040013A,SAN LUIS OBISPO CO DA,5
+CA040013G,San Luis Obispo County Probation Department ,5
+CA0400200,Grover Beach Police Department,3
+CA0400300,Morro Bay Police Department,3
+CA0400400,Paso Robles Police Department,3
+CA0400500,Pismo Beach Police Department,3
+CA0400600,San Luis Obispo Police Department,3
+CA0400700,Cal Poly San Luis Obispo Police Department,4
+CA0400800,Atascadero Police Department,3
+CA0401900,CUESTA COLLEGE PD,4
+CA0410000,San Mateo County Sheriff's Department,2
+CA0410100,Atherton Police Department,3
+CA041013A,SAN MATEO CO DISTRICT ATTORNEY'S OFFICE,5
+CA041013G,San Mateo County Probation Department ,5
+CA0410200,Belmont Police Department,3
+CA0410300,Brisbane Police Department,3
+CA0410400,Burlingame Police Department,3
+CA0410500,Colma Police Department,3
+CA0410600,Daly City Police Department,3
+CA0410800,Hillsborough Police Department,3
+CA0410900,Menlo Park Police Department,3
+CA0411100,Pacifica Police Department,3
+CA0411300,Redwood City Police Department,3
+CA0411400,San Bruno Police Department,3
+CA0411600,San Mateo Police Department,3
+CA0411700,South San Francisco Police Department,3
+CA0411900,Broadmoor Police Department,5
+CA0412000,Foster City Police Department,3
+CA0420000,Santa Barbara County Sheriff's Department,3
+CA0420100,Guadalupe Police Department,3
+CA042013A,SANTA BARBARA CO DISTRICT ATTORNEY'S OFFICE,5
+CA042013G,Santa Barbara County Probation Department ,5
+CA0420200,Lompoc Police Department,3
+CA0420300,Santa Barbara Police Department,3
+CA0420400,Santa Maria Police Department,3
+CA0421100,Allan Hancock College Police Department,4
+CA0429700,UC Santa Barbara Police Department,4
+CA0430000,Santa Clara County Sheriff's Department,2
+CA043013A,SANTA CLARA CO DISTRICT ATTORNEY'S OFFICE,5
+CA043013G,Santa Clara County Probation Department ,5
+CA0430200,Campbell Police Department,3
+CA0430400,Gilroy Police Department,3
+CA0430500,Los Altos Police Department,3
+CA0430700,Los Gatos Police Department,3
+CA0430800,Milpitas Police Department,3
+CA0430900,Monte Sereno,3
+CA0431000,Morgan Hill Police Department,3
+CA0431100,Mountain View Police Department,3
+CA0431200,Palo Alto Police Department,3
+CA0431300,San Jose Police Department,3
+CA0431400,Santa Clara Police Department,3
+CA0431600,Sunnyvale Department of Public Safety,3
+CA0431700,San Jose State University Police Department,4
+CA0432700,Foothill College Police Department,4
+CA0433700,WEST VALLEY-MISSION CC  PD,4
+CA0440000,Santa Cruz County Sheriff's Department,2
+CA0440100,Capitola Police Department,3
+CA044013G,Santa Cruz County Probation Department ,5
+CA0440200,Santa Cruz Police Department,3
+CA0440300,Watsonville Police Department,3
+CA0440400,Scotts Valley Police Department,3
+CA0449700,UC Santa Cruz Police Department,4
+CA0450000,Shasta County Sheriff's Department,2
+CA0450100,Anderson Police Department,3
+CA045013A,SHASTA CO DISTRICT ATTORNEY'S OFFICE,5
+CA045013G,Shasta County Probation Department ,5
+CA0450200,Redding Police Department,3
+CA0459100,Shasta County Marshal,5
+CA0460000,Sierra County Sheriff's Department,2
+CA046013G,Sierra  County Probation Department ,5
+CA0470000,Siskiyou County Sheriff's Department,2
+CA047013G,Siskiyou County Probation Department ,5
+CA047023A,SISKIYOU CO DISTRICT ATTORNEY-FAMILY SUPPORT,5
+CA0470300,Etna Police Department,3
+CA0470600,Mount Shasta Police Department,3
+CA0470700,Tulelake Police Department,3
+CA0470800,Weed Police Department,3
+CA0470900,Yreka Police Department,3
+CA0471000,Lake Shastina Police Department,3
+CA0480000,Solano County Sheriff's Department,2
+CA0480100,Benicia Police Department,3
+CA048013A,SOLANO COUNTY DISTRICT ATTORNEY'S OFFICE,5
+CA048013G,Solano County Probation Department ,5
+CA0480200,Dixon Police Department,3
+CA0480300,Fairfield Police Department,3
+CA0480400,Rio Vista Police Department,3
+CA0480500,Suisun Police Department,3
+CA0480600,Vacaville Police Department,3
+CA0480700,Vallejo Police Department,3
+CA0481500,Cal Maritime Police Department,5
+CA0490000,Sonoma County Sheriff's Department,2
+CA0490100,Cloverdale Police Department,3
+CA049013A,SONOMA CO DISTRICT ATTORNEY'S OFFICE,5
+CA049013G,Sonoma County Probation Department ,5
+CA0490200,Cotati Police Department,3
+CA0490300,Healdsburg Police Department,3
+CA0490400,Rohnert Park Public Safety,3
+CA0490500,Santa Rosa Police Department,3
+CA0490600,Sebastopol Police Department,3
+CA0490800,Petaluma Police Department,3
+CA0490900,CSU Sonoma Police Department,4
+CA0491400,Santa Rosa Junior College Police Department,4
+CA0500000,Stanislaus County Sheriff's Department,2
+CA0500100,Ceres Police Department,3
+CA050013A,STANISLAUS CO DISTRICT ATTORNEY'S OFFICE,5
+CA050013G,Stanislaus County Probation Department ,5
+CA0500200,Modesto Police Department,3
+CA0500300,Newman Police Department,3
+CA0500400,Oakdale Police Department,3
+CA0500700,Turlock Police Department,3
+CA0501000,CSU Stanislaus Police Department,4
+CA0510000,Sutter County Sheriff's Department,2
+CA051013A,SUTTER CO DISTRICT ATTORNEY'S OFFICE,5
+CA051013G,Sutter County Probation Department ,5
+CA0510200,Yuba City Police Department,3
+CA0520000,Tehama County Sheriff's Department,2
+CA0520100,Corning Police Department,3
+CA052013A,TEHAMA CO DA,5
+CA052013G,Tehama County Probation Department ,5
+CA0520200,Red Bluff Police Department,3
+CA0530000,Trinity County Sheriff's Department,2
+CA053013G,Trinity County Probation Department ,5
+CA0540000,Tulare County Sheriff's Department,2
+CA0540100,Dinuba Police Department,3
+CA0540200,Exeter Police Department,3
+CA0540300,Farmersville Police Department,3
+CA0540400,Lindsay Police Department,3
+CA0540500,Porterville Police Department,3
+CA0540600,Tulare Police Department,3
+CA0540700,Visalia Police Department,3
+CA0540800,Woodlake Police Department,3
+CA0541100,Sequoias Community College District Police Department,4
+CA0541200,PORTERVILLE STATE HOSPITAL PD,5
+CA0550000,Tuolumne County Sheriff's Department,2
+CA0550100,Sonora Police Department,3
+CA055013A,"TUOLUMNE CO DA	",5
+CA055013G,Tuolumne County Probation Department ,5
+CA055033G,Mother Lode Regional Juvenile Detention Facility,5
+CA0560000,Ventura County Sheriff's Department,2
+CA056023A,VENTURA CO DISTRICT ATTORNEY,5
+CA0560400,Oxnard Police Department,3
+CA0560500,Port Hueneme Police Department,3
+CA0560600,Santa Paula Police Department,3
+CA0560800,Ventura Police Department,3
+CA0560900,Simi Valley Police Department,3
+CA0562200,CSU Channel Islands Police Department,4
+CA0570000,Yolo County Sheriff's Department,2
+CA0570100,Davis Police Department,3
+CA057013A,YOLO CO DISTRICT ATTORNEY,5
+CA057013G,Yolo County Probation Department ,5
+CA0570200,Winters Police Department,3
+CA0570300,Woodland Police Department,3
+CA0570400,West Sacramento Police Department,3
+CA0579700,UC Davis Police Department,4
+CA0580000,Yuba County Sheriff's Department,2
+CA0580100,Marysville Police Department,3
+CA058013A,YUBA CO DISTRICT ATTORNEY,5
+CA058013G,Yuba County Probation Department ,5
+CA0580200,Wheatland Police Department,3
+UR0569901,Ventura Community College Police Department,4
+CA0071300,Kensington Police Department,3
+CA0130300,Calipatria Police Department,3
+CA0130700,Westmorland Police Department,3
+CA019C300,Compton Community College Police Department,4
+CA0191P00,Cerritos Community College Police Department,4
+CA0194700,Montebello Police Department,3
+CA0240100,Atwater Police Department,3
+CA036A100,Apple Valley Unified School District Police Department,5
+CA0420500,Santa Barbara County Sheriff's Department - Carpenteria,2
+CA0421200,Santa Barbara County Sheriff's Department - Buellton,2
+CA0421400,Santa Barbara County Sheriff's Department - Goleta,2
+CA0432100,West Valley Mission Community College Police Department,4
+CA045023A,SHASTA CO DISTRICT ATTORNEY'S OFFICE,5
+CA0470100,Siskiyou County Sheriff's Department - Dorris,2
+CA0470200,Siskiyou County Sheriff's Department - Dunsmuir,2
+CA0470500,Siskiyou County Sheriff's Department - Montague,2
+CA0490700,Sonoma County Sheriff's Department - Sonoma Police Department,3
+CA0491300,Sonoma County Sheriff's Department - Windsor Police Department,3
+CA0562400,Ventura District Community College Police Department,4
+CA057033A,YOLO CO DISTRICT ATTORNEY,5
+CAO51013G,SUTTER CO PROBATION DEPARTMENT,5
+CA0360100,Barstow Police Department,3
+CA036XR01,HESPERIA PARK RANGERS,5
+CA0412700,East Palo Alto Police Department,3
+CA0349424,CALIFORNIA DOJ NATMS,5
+CA0010040,ALAMEDA Sheriff's Office - DUBLIN,2
+CA0190N00,BURBANK GLENDALE PASADENA AIRPORT POLICE,5
+CA005023A,CALAVERAS CO DISTRICT ATTORNEY'S OFFICE,5
+CA0193F00,COMPTON UNIFIED SCHOOL DISTRICT POLICE DEPARTMENT,5
+CA007013A,CONTRA COSTA CO DISTRICT ATTORNEY'S OFFICE,5
+CA019B900,EL RANCHO USD PD,5
+CA0345100,FULTON-EL CAMINO REC & PARK DISTRICT PD,5
+CA0364200,HESPERIA SCHOOL DISTRICT POLICE DEPARTMENT,5
+CA012013A,HUMBOLDT CO DISTRICT ATTORNEY'S OFFICE,5
+CA0309600,IRVINE VALLEY COLLEGE POLICE DEPARTMENT,4
+CA016013A,KINGS CO DISTRICT ATTORNEY'S OFFICE,5
+CA017013A,LAKE CO DISTRICT ATTORNEY'S OFFICE,5
+CA0180001,LASSEN SHERIFFS OFFICE-SUSANVILLE,2
+CA0192C00,LOS ANGELES CITY PARK RANGERS,5
+CA019B800,MONTEBELLO SCHOOL POLICE DEPARTMENT,5
+CA027013A,MONTEREY CO DISTRICT ATTORNEY'S OFFICE,5
+CA029013A,NEVADA CO DISTRICT ATTORNEY'S OFFICE,5
+CA0332300,RIVERSIDE CO WELFARE FRAUD-INVEST,5
+CA030A100,SADDLEBACK COMMUNITY COLLEGE DISTRICT POLICE DEPT,4
+CA0362300,SAN BERNADINO UNIFIED SCHOOL DIST,5
+CA0363900,San Bernardino Community College District,4
+CA0372100,SAN DIEGO CITY SCHOOLS PD,5
+CA037023A,SAN DIEGO CO DISTRICT ATTORNEY'S OFFICE,5
+CA0372800,SAN DIEGO COMMUNITY COLLEGE PD,4
+CA038013A,SAN FRANCISCO CO DISTRICT ATTORNEY'S OFFICE,5
+CA0433400,SAN JOSE EVERGREEN COMMUNITY COLLEGE DISTRICT PD,4
+CA041023A,SAN MATEO Sheriff's Office-COMMUNICATIONS,2
+CA0304600,SANTA ANA UNIFIED SCHL DIST - PD,5
+CA0420600,SANTA BARBARA HARBOR,5
+CA0432000,SANTA CLARA CO FIRE - ARSON,5
+CA044013A,SANTA CRUZ CO DISTRICT ATTORNEY'S OFFICE,5
+CA047013A,SISKIYOU CO DISTRICT ATTORNEY'S OFFICE,5
+CA0470030,SISKIYOU COUNTY SHERIFF - LAKE SHASTINA,2
+CA0371800,SOUTHWESTERN COLLEGE POLICE DEPT,4
+CA0101700,STATE CENTER COMMUNITY COLLEGE COLLEGE DISTRICT  PD,4
+CA0391100,STOCKTON PORT POLICE DEPARTMENT,5
+CA054023A,TULARE CO DA,5
+CA0365800,VICTOR VALLEY COLLEGE PD,4
+CA0440310,Watsonville Police Department,3
+CA0335000,Val Verde Unified School District PD,5
+CA0151900,Kern County Dist Parks PD,5
+CA0012600,Ohlone Community College PD,4
+CA0441100,Santa Cruz Harbor PD,5
+CA0580600,Yuba Community College District PD,4
+CA0364900,Snowline Joint Unified School District PD,5
+CA0103500,Clovis Unified School District PD,5
+CA0193700,Hacienda-La Puente Unified School District PD,5
+CA021XR01,Marin County Water District Rangers,5
+CA040XR01,San Luis Obispo Harbor Patrol,5
+CA0102400,Fresno Yosemite Airport PD,5
+CA0152700,Kern County Dept of Airports,5

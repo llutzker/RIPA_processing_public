@@ -1,0 +1,2210 @@
+---
+title: "Prep_RIPA_files"
+author: "Liza Lutzker"
+date: "2024-10-25"
+output: html_document
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table)
+library(dtplyr)
+library(tidyverse)
+library(janitor)
+library(naniar)
+library(readxl)
+options(max.print = 2500)
+
+```
+
+```{r}
+header_preview <- fread('../Data/SDCS_PRA_extract_all_data_20220101_20221231.dat',
+                        sep = "|", nrows = 1, header = TRUE)
+colnames(header_preview)  # Check column names or count
+
+#check to see if 2018 file is set up the same way
+header_preview2 <- read.delim('../Data/SDCS_PRA_extract_all_data_20180101_20181231.dat',
+                        sep = "|", nrows = 1, header = TRUE)
+colnames(header_preview2)
+
+field_counts <- count.fields('../Data/SDCS_PRA_extract_all_data_20180101_20181231.dat', sep = "|")
+table(field_counts)  # This shows the distribution of column counts by row
+```
+
+
+```{r}
+RIPA18 <- fread('../RawData/SDCS_PRA_extract_all_data_20180101_20181231.dat',
+sep="|", quote="", fill=TRUE)
+saveRDS(RIPA18, '../RawData/r18.rds')
+```
+
+
+```{r}
+RIPA19 <- fread('../RawData/SDCS_PRA_extract_all_data_20190101_20191231.dat',
+sep="|", quote="", fill=TRUE)
+saveRDS(RIPA19, '../RawData/r19.rds')
+```
+
+```{r}
+RIPA20 <- fread('../RawData/SDCS_PRA_extract_all_data_20200101_20201231.dat',
+sep="|", quote="", fill=TRUE)
+saveRDS(RIPA20, '../RawData/r20.rds')
+```
+
+```{r}
+RIPA21 <- fread('../RawData/SDCS_PRA_extract_all_data_20210101_20211231.dat',
+sep="|", quote="", fill=TRUE)
+saveRDS(RIPA21, '../RawData/r21.rds')
+```
+
+```{r}
+RIPA22 <- fread('../RawData/SDCS_PRA_extract_all_data_20220101_20221231.dat',
+sep="|", quote="", fill=TRUE)
+saveRDS(RIPA22, '../RawData/r22.rds')
+```
+
+```{r}
+RIPA23 <- fread('../RawData/SDCS_PRA_extract_all_data_20230101_20231231.dat',
+sep="|", quote="", fill=TRUE)
+saveRDS(RIPA23, '../RawData/r23.rds')
+```
+
+```{r}
+r18 <- readRDS("E:/Process_RIPA/RawData/r18.rds")
+r19 <- readRDS("E:/Process_RIPA/RawData/r19.rds")
+r20 <- readRDS("E:/Process_RIPA/RawData/r20.rds")
+r21 <- readRDS("E:/Process_RIPA/RawData/r21.rds")
+r22 <- readRDS("E:/Process_RIPA/RawData/r22.rds")
+r23 <- readRDS("E:/Process_RIPA/RawData/r23.rds")
+```
+
+```{r, restrict18}
+# Examine column names
+r18names<-as.data.frame(colnames(r18))
+# write.csv(r18names,'../Data/r18names.csv')
+
+#isolate stop level variables of interest
+stopcol<-c(1, 3, 5:11, 14, 15)
+r18stop<-r18[,..stopcol]
+saveRDS(r18stop, '../Data/r18stop.rds')
+
+#isolate person level variables - these start in column 18 and repeat every 28
+#these are vars to keep in general - create one vector, then multiply each by 28 64 times
+one_pers<-c(18:20, 23, 27:30, 35, 40:44)
+repetitions<-64
+perscol<-numeric(length(one_pers) * repetitions)
+
+for (i in 1:repetitions) {
+  start_index<-(i-1)*length(one_pers) + 1
+  end_index<- i*length(one_pers)
+  perscol[start_index:end_index] <- one_pers + (i-1)*28
+}
+# #don't forget to include unique id - column 1
+ perscol<-c(1, perscol)
+#print(perscol)
+
+r18pers<-r18[,..perscol]
+
+# #prep for pivot longer by assigning suffixes
+# #cols now have different numbers so re-examine
+pers18names<-as.data.frame(colnames(r18pers))
+#write.csv(pers18names,'../Data/pers18names.csv')
+
+#first remove the 1_4 from Perceived Gender columns
+names(r18pers)[names(r18pers) == "Perceived Gender 1-4"] <- "Perceived Gender"
+
+#give a numeric suffix to each set of person level variables, except DOJ ID
+existing_cols<-colnames(r18pers)
+new_cols<-existing_cols
+cols_to_suffix<-existing_cols[-1]
+#create suffixes and apply them
+n_fields<-length(cols_to_suffix)/repetitions
+suffixes<-rep(1:repetitions, each=n_fields)
+new_cols[-1]<-paste(cols_to_suffix, suffixes, sep="_")
+colnames(r18pers)<-new_cols
+ print(colnames(r18pers))
+
+#before pivot, cleanup column names
+r18pers.1 <- r18pers %>%
+  clean_names(., "big_camel")
+#print(colnames(r18pers.1))
+
+saveRDS(r18pers.1, '../Data/r18pers_1.rds')
+```
+
+```{r, pivotlonger18}
+r18pers.1 <- readRDS("E:/Process_RIPA/Data/r18pers_1.rds")
+
+r18long <- r18pers.1 %>%
+  mutate(across(-DojRecordId, as.character)) %>% #coerce all columns to character
+  pivot_longer(
+    cols = -DojRecordId,
+    names_to=c("variable", "group"),
+    names_pattern="([a-zA-Z]+)([0-9]+)"
+  ) %>%
+  pivot_wider(
+    names_from = variable,
+    values_from = value)
+
+#now delete rows with NA or missing values
+r18long_clean <- r18long %>%
+  filter(if_any(-c(DojRecordId, group), ~ !is.na(.) & . !=""))
+
+#save this and move onto dealing with columns that have multiple entries
+saveRDS(r18long_clean, '../Data/r18long_clean.rds')
+```
+
+```{r, clean18}
+#load in cleaned long file and work on sorting out multiple entries per cell
+r18long_clean <- readRDS("E:/Process_RIPA/Data/r18long_clean.rds")
+head(r18long_clean, 20)
+
+## Run descriptive statistics and examine records with non-conforming data
+## Generate fixes below and come back here to ensure corection has worked
+unique(r18long_clean$PerceivedGender)
+unique(r18long_clean$TrafficViolationType)
+# look<-dt_r18l[TrafficViolationType=="XXXXXXX"]
+# look<-dt_r18l[TrafficViolationType=="BRAKE LIGHT"]
+# look<-dt_r18l[TrafficViolationType %in% moving]
+unique(r18long_clean$TrafficViolationCjisOffenseCode)
+# look<-dt_r18l[TrafficViolationCjisOffenseCode %in% lo_dig]
+# look2<-r18l_clean[r18l_clean$TrafficViolationCjisOffenseCode %in% lo_dig,]
+
+#columns with multiple entries appear to be: ActionsTaken & Results of Stop - what else?
+unique(r18long_clean$ActionsTaken) # These take the form "\"12,NA\"" with a # and Y, N or NA.
+#Repeats at least 13 times. These are paired and need the 'pairs' vector below to address
+unique(r18long_clean$PerceivedRaceOrEthnicity) #7 repeats
+unique(r18long_clean$ContrabandOrEvidence) #8 repeats
+unique(r18long_clean$ResultsOfStop) #6 repeats
+unique(r18long_clean$WarningCjisOffenseCodeS) #5 repeats
+unique(r18long_clean$CitationCjisOffenseCodeS) #5 repeats
+unique(r18long_clean$InFieldCiteAndReleaseCjisOffenseCodeS) #5 repeats
+
+#to use dtplyr do lazy_dt(df) as first step before %>%  and then last step in pipes is as_tibble
+
+#first set NA values
+#then deal with one-off non-conforming values
+#this includes speed-related moving violations with narrative in place of type
+#this CJIS codes that are too short, includes adding leading 0s to 4 digit offense codes
+#finally, separate out columns with multiple comma separated codes
+na_strings<-c("", "N", "NA", "N/A") #list of NA values
+moving <- c("SPEEDING", "80 mph in a 65 zone", 
+  "79 mph in a 65 zone, violator also saw and failed to slow for in view CHP performing speed enforcement.", 
+  "Lidar" , "LIDAR","LIDAR +REGISTRATION EXPIRED SINCE AUGUST", "LIDAR + PACE", 
+  "LIDAR + 5200(A)CVC FOR NOT INSTALLING PLATES FOR > A YEAR", "rear moving radar", 
+  "LIDAR+5200(A)cvc = for keeping the license plates inside the trunk", "RADAR", "PACE")
+lo_dig<-c("3", "4043", "9999", "8030", "9150", "4022", "8008", "8034", "4053", "9200", 
+        "4033", "9176", "9005", "9151", "4037", "4070", "4071", "9154", "4032", "4055", "9157", "4072")
+traf_viol<- c("42104", "99999", "54353", "54178", "24600", "54167", "66953")
+pairs <- unlist(lapply(1:13, function(i) c(paste0("ActionsTaken", i, "_code"), paste0("ActionsTaken", i, "_YN"))))
+
+dt_r18l <- data.table(r18long_clean)
+r18l_clean <- lazy_dt(dt_r18l) %>% 
+#first replace any values of "" or "N" with NA
+  mutate(across(everything(), ~ ifelse(. %in% na_strings, NA, .))) %>%
+#Perceived Gender (has one record of 2,7) - fixed
+  mutate(PerceivedGender = 
+           if_else(PerceivedGender == "2,7", "2", PerceivedGender)) %>%
+#TrafficViolationType has some non-conforming free-text responses in it - fixed
+  mutate(TrafficViolationType = 
+           if_else(DojRecordId== 'W499019080YUHR8KD5UO', "1", TrafficViolationType)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = 
+           if_else(DojRecordId== 'W499019080YUHR8KD5UO', "54106", TrafficViolationCjisOffenseCode)) %>%
+  mutate(TrafficViolationType = 
+           if_else(DojRecordId== 'W4990190643UPON17U5H', "2", TrafficViolationType)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = 
+           if_else(DojRecordId== 'W4990190643UPON17U5H', "24600", TrafficViolationCjisOffenseCode)) %>%
+  mutate(ReasonForStopNarrative = 
+           if_else(DojRecordId== 'W4990190643UPON17U5H', "BRAKE LIGHT", ReasonForStopNarrative)) %>%
+  mutate(ReasonForStopNarrative = 
+           if_else (DojRecordId %in% c("W499019065U4CLNCYEMK", "W499019067UNT5X8UYKF", "W499019067FVZADSLXTU"), 
+                    TrafficViolationType, ReasonForStopNarrative)) %>% 
+#TrafficViolationCjisOffenseCode has some non-conforming responses
+    mutate(ResultsOfStop = if_else(DojRecordId %in% c('W499019082S5KR1V5W8H', 'W499019082F17J29PUES'), 
+                                 "1", ResultsOfStop)) %>%
+  mutate(WarningCjisOffenseCodeS = if_else(DojRecordId %in% c('W499019082S5KR1V5W8H', 'W499019082F17J29PUES'), 
+                                 "3", WarningCjisOffenseCodeS)) %>%
+  mutate(CitationCjisOffenseCodeS = if_else(DojRecordId == 'W499019082S5KR1V5W8H', "54168,54305", 
+                                            CitationCjisOffenseCodeS)) %>%
+  mutate(CitationCjisOffenseCodeS = if_else(DojRecordId == 'W499019082F17J29PUES', "650025", 
+                                            CitationCjisOffenseCodeS)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = if_else(TrafficViolationType %in% moving, 
+                                                   "54106", TrafficViolationCjisOffenseCode)) %>%
+  mutate(TrafficViolationType = if_else(TrafficViolationType %in% moving, "1", TrafficViolationType)) %>% 
+#those with four digits need leading 0 and are correct - fix below
+  mutate(TrafficViolationCjisOffenseCode = if_else(nchar(TrafficViolationCjisOffenseCode)==4 
+                                                   & !(is.na(TrafficViolationCjisOffenseCode)), 
+                                                   paste0("0", TrafficViolationCjisOffenseCode), 
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+#those with a 3 are a mess - set Reason for Stop and Type to NA (instead of 1) for all but list of traffic violations where CJIS offence is clear from narrative (n=7) - fixed
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'S942018191A4VOVVUZ6Y', '42104', 
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'S9420182024AS6FP4ME6', '99999', 
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'S942018216SXPE9NRSDJ', '54353', 
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'S9420182363QEXHQXFYQ', '54178', 
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'S942018243SJIU43QYAZ', '24600', 
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'S942018257DBLHYUMUSK', '54167', 
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'S942018271IQ3T8BT7VN', '66593', 
+                                                   TrafficViolationCjisOffenseCode)) %>%
+#  set Reason for Stop and Type to NA for others 
+  mutate(ReasonForStop = if_else(TrafficViolationCjisOffenseCode == "3" & !(is.na(TrafficViolationCjisOffenseCode)), 
+                                 NA, ReasonForStop)) %>%
+  mutate(TrafficViolationType = if_else(TrafficViolationCjisOffenseCode == "3" 
+                                        & !(is.na(TrafficViolationCjisOffenseCode)), NA, TrafficViolationType)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = if_else(TrafficViolationCjisOffenseCode == "3" 
+                                                   & !(is.na(TrafficViolationCjisOffenseCode)), NA,
+                                                   TrafficViolationCjisOffenseCode)) %>%
+  #finally create multiple new columns for each column with multiple comma separated values
+  separate(col=PerceivedRaceOrEthnicity, into=paste0("PerceivedRace", 1:7), sep=",", fill="right") %>% 
+  separate(col=ContrabandOrEvidence, into=paste0("ContrabandOrEvidence", 1:8), sep=",", fill="right") %>% 
+  separate(col=ResultsOfStop, into=paste0("ResultsOfStop", 1:6), sep=",", fill="right") %>% 
+  separate(col=WarningCjisOffenseCodeS, into=paste0("WarningCjisOffenseCodeS", 1:5), sep=",", fill="right") %>% 
+  separate(col=CitationCjisOffenseCodeS, into=paste0("CitationCjisOffenseCodeS", 1:5), sep=",", fill="right") %>%
+  separate(col=InFieldCiteAndReleaseCjisOffenseCodeS, into=paste0("InFieldCiteAndReleaseCjisOffenseCodeS", 
+                                                                  1:5), sep=",", fill="right") %>%
+  #deal with ActionsTaken, which has comma-separated values and number plus Y/N/NA
+  mutate(ActionsTaken = str_remove_all(ActionsTaken, '"')) %>% 
+  separate(col = ActionsTaken, into = pairs, sep = ",", fill = "right") %>%
+  # replace any values of "NA", "" or "N" with NA again
+  mutate(across(everything(), ~ ifelse(. %in% na_strings, NA, .))) %>%
+  #where needed, add leading zeroes to other CJIS codes these and set 1-character values to missing
+  mutate(WarningCjisOffenseCodeS1 = if_else(nchar(WarningCjisOffenseCodeS1)==4, 
+                                                   paste0("0", WarningCjisOffenseCodeS1), 
+                                                   WarningCjisOffenseCodeS1)) %>%  
+  mutate(WarningCjisOffenseCodeS1 = if_else(nchar(WarningCjisOffenseCodeS1)==1, NA, 
+                                                   WarningCjisOffenseCodeS1)) %>%  
+  mutate(WarningCjisOffenseCodeS2 = if_else(nchar(WarningCjisOffenseCodeS2)==1, NA, 
+                                                   WarningCjisOffenseCodeS2)) %>%
+  mutate(CitationCjisOffenseCodeS1 = if_else(nchar(CitationCjisOffenseCodeS1)==4, 
+                                                   paste0("0", CitationCjisOffenseCodeS1), 
+                                                   CitationCjisOffenseCodeS1)) %>% 
+  mutate(InFieldCiteAndReleaseCjisOffenseCodeS1 = if_else(nchar(InFieldCiteAndReleaseCjisOffenseCodeS1)==4, 
+                                                   paste0("0", InFieldCiteAndReleaseCjisOffenseCodeS1), 
+                                                   InFieldCiteAndReleaseCjisOffenseCodeS1)) %>%  
+  mutate(InFieldCiteAndReleaseCjisOffenseCodeS1 = if_else(nchar(InFieldCiteAndReleaseCjisOffenseCodeS1)==1, NA, 
+                                                   InFieldCiteAndReleaseCjisOffenseCodeS1)) %>%  
+  mutate(InFieldCiteAndReleaseCjisOffenseCodeS2 = if_else(nchar(InFieldCiteAndReleaseCjisOffenseCodeS2)==4, 
+                                                   paste0("0", InFieldCiteAndReleaseCjisOffenseCodeS2), 
+                                                   InFieldCiteAndReleaseCjisOffenseCodeS2)) %>%
+    as_tibble()
+
+
+```
+
+```{r, stop18}
+r18stop <- readRDS("../Data/r18stop.rds")
+
+#cleanup column names
+r18stop.1 <- r18stop %>%
+  clean_names(., "big_camel")
+print(colnames(r18stop.1))
+
+#checked values and these all are fine - don't need cleaning
+
+dt_r18stop <- data.table(r18stop.1)
+
+```
+
+```{r, merge18}
+r18all<- merge(r18l_clean, dt_r18stop, 
+               by = 'DojRecordId')
+
+saveRDS(r18all, '../Data/r18all.rds')
+```
+
+```{r, CVC18}
+xwalk <- read_xlsx(path='E:/Process_RIPA/Data/RIPA-StopDataCollectionSystem-look-up-table-2023.v2_mode.xlsx',
+                    sheet='Offense Table', guess_max = 1600) %>% 
+  clean_names(., "big_camel") %>% 
+  select(c('OffenseCode', 'OffenseStatute', 'OffenseTypeOfStatuteCd', 'Mode', 'StatuteLiteral25')) %>% 
+  distinct(OffenseCode, .keep_all = TRUE)
+
+
+r18all <- readRDS("../Data/r18all.rds")
+
+dt_r18all <- data.table(r18all)
+dt_xwalk <- data.table(xwalk)
+r18cvc<- merge(dt_r18all, dt_xwalk, 
+               by.x = 'TrafficViolationCjisOffenseCode', by.y = 'OffenseCode', 
+               all.x = TRUE) %>% 
+  arrange(Mode, TrafficViolationCjisOffenseCode) %>% 
+  mutate(Mode = na_if(Mode, "NA")) %>% 
+  #rather than OffenseCode, officer entered OffenseStatue here
+  mutate(
+    OffenseStatute = if_else(DojRecordId %in% c('S942018243SJIU43QYAZ', 'W4990190643UPON17U5H'), 
+                             "24600", OffenseStatute),
+    OffenseTypeOfStatuteCd = if_else(DojRecordId %in% c('S942018243SJIU43QYAZ', 'W4990190643UPON17U5H'), 
+                             "VC", OffenseTypeOfStatuteCd),
+    Mode = if_else(DojRecordId %in% c('S942018243SJIU43QYAZ', 'W4990190643UPON17U5H'), 
+                             "DRIVER", Mode), 
+    StatuteLiteral25 = if_else(DojRecordId %in% c('S942018243SJIU43QYAZ', 'W4990190643UPON17U5H'), 
+                             "TAILLAMP VIOLATIONS", StatuteLiteral25),
+)
+
+```
+
+
+
+```{r, restrict19}
+# Examine column names
+r19names<-as.data.frame(colnames(r19))
+#write.csv(r19names,'../Data/r19names.csv')
+#Identical to 2018
+
+# #isolate stop level variables
+ stopcol<-c(1, 3, 5:11, 14, 15)
+ r19stop<-r19[,..stopcol]
+ saveRDS(r19stop, '../Data/r19stop.rds')
+
+# #isolate person level variables - these start in column 18 and repeat every 28
+ #these are vars to keep in general - create one vector, then multiply each by 28 52 times
+one_pers<-c(18:20, 23, 27:30, 35, 40:44)
+repetitions<-52
+perscol<-numeric(length(one_pers) * repetitions)
+
+for (i in 1:repetitions) {
+  start_index<-(i-1)*length(one_pers) + 1
+  end_index<- i*length(one_pers)
+  perscol[start_index:end_index] <- one_pers + (i-1)*28
+}
+#don't forget to include unique id - column 1
+perscol<-c(1, perscol)
+ #print(perscol)
+
+r19pers<-r19[,..perscol]
+
+#prep for pivot longer by assigning suffixes
+#cols now have different numbers so re-examine
+pers19names<-as.data.frame(colnames(r19pers))
+#write.csv(pers19names,'../Data/pers19names.csv')
+
+#first remove the 1_4 from Perceived Gender columns
+names(r19pers)[names(r19pers) == "Perceived Gender 1-4"] <- "Perceived Gender"
+
+#give a numeric suffix to each set of person level variables, except DOJ ID
+existing_cols<-colnames(r19pers)
+new_cols<-existing_cols
+cols_to_suffix<-existing_cols[-1]
+#create suffixes and apply them
+n_fields<-length(cols_to_suffix)/repetitions
+suffixes<-rep(1:repetitions, each=n_fields)
+new_cols[-1]<-paste(cols_to_suffix, suffixes, sep="_")
+colnames(r19pers)<-new_cols
+
+print(colnames(r19pers))
+
+#before pivot, cleanup column names
+r19pers.1 <- r19pers %>%
+  clean_names(., "big_camel")
+#print(colnames(r19pers.1))
+
+saveRDS(r19pers.1, '../Data/r19pers_1.rds')
+```
+
+```{r, pivotlonger19}
+r19pers.1 <- readRDS("E:/Process_RIPA/Data/r19pers_1.rds")
+
+dt_r19pers <- data.table(r19pers.1)
+
+#first just remove person1 from the file and pivot_longer with them 
+#then delete all records with <2 people and pivot_longer separately
+#finally, stack the files
+#this needs to be done before pivot longer due to memory/size issues
+ dt19_p1 <- dt_r19pers %>%
+   select(1:15) %>%
+      mutate(across(-DojRecordId, as.character)) %>% #coerce all columns to character
+    pivot_longer(
+      cols = -DojRecordId,
+      names_to=c("variable", "group"),
+      names_pattern="([a-zA-Z]+)([0-9]+)"
+    ) %>%
+    pivot_wider(
+      names_from = variable,
+      values_from = value)
+
+ dt19_2plus <- dt_r19pers %>%
+   filter(!is.na(PersonNumber2)) %>%
+   select(1, 16:729) %>%
+        mutate(across(-DojRecordId, as.character)) %>% #coerce all columns to character
+    pivot_longer(
+      cols = -DojRecordId,
+      names_to=c("variable", "group"),
+      names_pattern="([a-zA-Z]+)([0-9]+)"
+    ) %>%
+    pivot_wider(
+      names_from = variable,
+      values_from = value) %>%
+   filter(if_any(-c(DojRecordId, group), ~ !is.na(.) & . !="")) # delete rows with NA or missing values
+
+ r19long_clean <- rbind(dt19_p1, dt19_2plus) %>%
+   arrange(DojRecordId) %>%
+   as_tibble()
+
+#  save this and move onto dealing with columns that have multiple entries
+ saveRDS(r19long_clean, '../Data/r19long_clean.rds')
+```
+
+```{r, clean19}
+#load in cleaned long file and work on sorting out multiple entries per cell
+r19long_clean <- readRDS("E:/Process_RIPA/Data/r19long_clean.rds")
+#str(r19long_clean)
+
+## Run descriptive statistics and examine records with non-conforming data
+## Generate fixes below and come back here to ensure correction has worked
+unique(r19long_clean$PerceivedGender) #one value with 7 - change to NA
+unique(r19long_clean$PerceivedAge) #good except one value is N - make sure it's NA
+unique(r19long_clean$ReasonForStop)  #good except one value is N - make sure it's NA
+
+ unique(r19long_clean$TrafficViolationType) 
+  # one "" to be set to missing
+  # one "DRIVER NOT WEARING SEATBELT"
+  # one "HEADLIGHT OUT" 
+  # all others that are incorrect are speeding (add to 'moving')
+#fix below and make sure all is working correctly
+# look<-dt_r19l[TrafficViolationType=="DRIVER NOT WEARING SEATBELT"]
+# look<-dt_r19l[TrafficViolationType=="HEADLIGHT OUT"]
+# look<-dt_r19l[TrafficViolationType %in% moving]
+
+
+ unique(r19long_clean$TrafficViolationCjisOffenseCode)
+#add non-5 digit numbers to lo_dig and fix
+# look<-dt_r19l[TrafficViolationCjisOffenseCode %in% lo_dig]
+# look2<-r19l_clean[r19l_clean$TrafficViolationCjisOffenseCode %in% lo_dig,]
+
+#columns with multiple entries appear to be: ActionsTaken & Results of Stop - what else?
+ unique(r19long_clean$ActionsTaken) # These take the form "\"12,NA\"" with a # and Y, N or NA. 
+  #Repeat at least 24 times - try 30 times. 
+ unique(r19long_clean$PerceivedRaceOrEthnicity) #repeat 7
+ unique(r19long_clean$ContrabandOrEvidence) #repeat 10
+ unique(r19long_clean$ResultsOfStop) #repeat 5
+ unique(r19long_clean$WarningCjisOffenseCodeS) #repeat 5
+ unique(r19long_clean$CitationCjisOffenseCodeS) #repeat 5
+ unique(r19long_clean$InFieldCiteAndReleaseCjisOffenseCodeS) #repeat 5
+
+#to use dtplyr do lazy_dt(df) as first step before %>%  and then last step in pipes is as_tibble
+
+#first set NA values
+#then deal with one-off non-conforming values
+#this includes speed-related moving violations with narrative in place of type
+#this CJIS codes that are too short, includes adding leading 0s to 4 digit offense code
+#finally, separate out columns with multiple comma separated codes
+na_strings<-c("", "N", "NA", "N/A") #list of NA values
+moving <- c("RADAR", "Radar", "PACE AT 80+ MPH", "lidar", "RADAR WENT", 
+            "RADAR AND PACE", "PACE" , "LIDAR", "radar", "pace", "LIDARALSO 12500AALSO 5200A")
+lo_dig<-c("8034", "9180", "2", "4032", "9147", "4022", "9154", "4062", "8004", "2053", 
+          "4052", "3", "4014", "1", "4027", "4051", "9151", "4048", "4026", "8042", "9157", 
+          "2052", "4037", "9176", "4071", "9200", "4072", "4042", "4053", "8023", 
+           "4055", "8030", "8008", "9150", "8041", "9005", "4043", "9155")
+pairs <- unlist(lapply(1:13, function(i) c(paste0("ActionsTaken", i, "_code"), paste0("ActionsTaken", i, "_YN"))))
+
+
+dt_r19l <- data.table(r19long_clean)
+r19l_clean <- lazy_dt(dt_r19l) %>% 
+#first replace any values of "" or "N" with NA
+  mutate(across(everything(), ~ ifelse(. %in% na_strings, NA, .))) %>%
+#now deal with one person with Gender ==7
+  mutate(PerceivedGender = if_else(PerceivedGender==7,NA, PerceivedGender)) %>% 
+  
+#TrafficViolationType has some non-conforming free-text responses in it - fixed
+  mutate(TrafficViolationType = 
+           if_else(DojRecordId== 'W349920078IQWNZ0NUNY', "2", TrafficViolationType)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = 
+           if_else(DojRecordId== 'W349920078IQWNZ0NUNY', "66985", TrafficViolationCjisOffenseCode)) %>%
+  mutate(ReasonForStopNarrative = 
+           if_else(DojRecordId== 'W349920078IQWNZ0NUNY', "DRIVER NOT WEARING SEATBELT", ReasonForStopNarrative)) %>%
+  mutate(ContrabandOrEvidence= if_else(DojRecordId== 'W349920078IQWNZ0NUNY', "1", ContrabandOrEvidence)) %>%
+  mutate(ResultsOfStop=if_else(DojRecordId== 'W349920078IQWNZ0NUNY', "3", ResultsOfStop)) %>%
+  mutate(WarningCjisOffenseCodeS=if_else(DojRecordId== 'W349920078IQWNZ0NUNY', NA , WarningCjisOffenseCodeS)) %>%
+  mutate(TrafficViolationType = 
+           if_else(DojRecordId== 'W349920084O1LQB6FVO5', "2", TrafficViolationType)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = 
+           if_else(DojRecordId== 'W349920084O1LQB6FVO5', "66968", TrafficViolationCjisOffenseCode)) %>%
+  mutate(ReasonForStopNarrative = 
+           if_else(DojRecordId== 'W349920084O1LQB6FVO5', "HEADLIGHT OUT", ReasonForStopNarrative)) %>% 
+  mutate(ContrabandOrEvidence= if_else(DojRecordId== 'W349920084O1LQB6FVO5', "1", ContrabandOrEvidence)) %>%
+  mutate(ResultsOfStop=if_else(DojRecordId== 'W349920084O1LQB6FVO5', "3", ResultsOfStop)) %>%
+  mutate(WarningCjisOffenseCodeS=if_else(DojRecordId== 'W349920084O1LQB6FVO5', NA , WarningCjisOffenseCodeS)) %>%
+  mutate(PersonNumber=if_else(DojRecordId=='W349920078XSAYS2LVXE', "1", PersonNumber)) %>% 
+  mutate(PerceivedRaceOrEthnicity=if_else(DojRecordId=='W349920078XSAYS2LVXE', "7", PerceivedRaceOrEthnicity)) %>% 
+  mutate(PerceivedGender=if_else(DojRecordId=='W349920078XSAYS2LVXE', NA, PerceivedGender)) %>%   
+  mutate(PerceivedAge=if_else(DojRecordId=='W349920078XSAYS2LVXE', NA, PerceivedAge)) %>% 
+  mutate(ReasonForStop=if_else(DojRecordId=='W349920078XSAYS2LVXE', "1", ReasonForStop)) %>% 
+  mutate(ReasonForStopNarrative=if_else(DojRecordId=='W349920078XSAYS2LVXE', "PACE FROM RIVER ROAD TO SHILOH",
+                                        ReasonForStopNarrative)) %>% 
+  mutate(TrafficViolationType = if_else(DojRecordId== 'W349920078XSAYS2LVXE', "1", TrafficViolationType)) %>% 
+  mutate(TrafficViolationCjisOffenseCode=if_else(DojRecordId=='W349920078XSAYS2LVXE', "54106",
+                                                 TrafficViolationCjisOffenseCode)) %>% 
+  mutate(ContrabandOrEvidence= if_else(DojRecordId== 'W349920078XSAYS2LVXE', "1", ContrabandOrEvidence)) %>%
+  mutate(ResultsOfStop=if_else(DojRecordId== 'W349920078XSAYS2LVXE', "3", ResultsOfStop)) %>%
+  mutate(WarningCjisOffenseCodeS=if_else(DojRecordId== 'W349920078XSAYS2LVXE', NA , WarningCjisOffenseCodeS)) %>%
+  mutate(TrafficViolationCjisOffenseCode = if_else(TrafficViolationType %in% moving, 
+                                                   "54106", TrafficViolationCjisOffenseCode)) %>%
+  mutate(ContrabandOrEvidence= if_else(TrafficViolationType %in% moving, "1", ContrabandOrEvidence)) %>%
+  mutate(ResultsOfStop=if_else(TrafficViolationType %in% moving, "3", ResultsOfStop)) %>%
+  mutate(WarningCjisOffenseCodeS=if_else(TrafficViolationType %in% moving, NA , WarningCjisOffenseCodeS)) %>% 
+  mutate(TrafficViolationType = if_else(TrafficViolationType %in% moving, "1", TrafficViolationType)) %>%
+
+#those with four digits need leading 0 and are correct - fix below
+  mutate(TrafficViolationCjisOffenseCode = if_else(nchar(TrafficViolationCjisOffenseCode)==4 
+                                                   & !(is.na(TrafficViolationCjisOffenseCode)), 
+                                                   paste0("0", TrafficViolationCjisOffenseCode), 
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+#those with a 1 are supposed to have that as TrafficViolationType and need Offense Code for speeding
+  mutate(TrafficViolationType = if_else(TrafficViolationCjisOffenseCode=="1" & TrafficViolationType != "3", 
+                                        "1", TrafficViolationType)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = if_else(TrafficViolationCjisOffenseCode=="1" & TrafficViolationType != "3", 
+                                        "54106", TrafficViolationCjisOffenseCode)) %>%   
+  #those with a 3 (or 1 with ViolationType==3) are a mess
+  #set Reason for Stop and Type to NA for all but list of traffic violations where CJIS offence is clear from narrative  (n=1) - fixed
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'S942019039HY1NI5AW5G', '66953', 
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+#  set Reason for Stop and Type to NA for others 
+  mutate(ReasonForStop = if_else(TrafficViolationCjisOffenseCode %in% c("1", "3") &
+                                   !(is.na(TrafficViolationCjisOffenseCode)), 
+                                 NA, ReasonForStop)) %>%
+  mutate(TrafficViolationType = if_else(TrafficViolationCjisOffenseCode %in% c("1", "3") 
+                                        & !(is.na(TrafficViolationCjisOffenseCode)), NA, TrafficViolationType)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = if_else(TrafficViolationCjisOffenseCode %in% c("1", "3") 
+                                                   & !(is.na(TrafficViolationCjisOffenseCode)), NA,
+                                                   TrafficViolationCjisOffenseCode)) %>%
+   
+  #finally create multiple new columns for each column with multiple comma separated values
+  separate(col=PerceivedRaceOrEthnicity, into=paste0("PerceivedRace", 1:7), sep=",", fill="right") %>% 
+  separate(col=ContrabandOrEvidence, into=paste0("ContrabandOrEvidence", 1:10), sep=",", fill="right") %>% 
+  separate(col=ResultsOfStop, into=paste0("ResultsOfStop", 1:5), sep=",", fill="right") %>% 
+  separate(col=WarningCjisOffenseCodeS, into=paste0("WarningCjisOffenseCodeS", 1:5), sep=",", fill="right") %>% 
+  separate(col=CitationCjisOffenseCodeS, into=paste0("CitationCjisOffenseCodeS", 1:5), sep=",", fill="right") %>%
+  separate(col=InFieldCiteAndReleaseCjisOffenseCodeS, into=paste0("InFieldCiteAndReleaseCjisOffenseCodeS", 
+                                                                  1:5), sep=",", fill="right") %>%
+ #deal with ActionsTaken, which has comma-separated values and number plus Y/N/NA
+  mutate(ActionsTaken = str_remove_all(ActionsTaken, '"')) %>% 
+  separate(col = ActionsTaken, into = pairs, sep = ",", fill = "right") %>%
+# replace any values of "NA", "" or "N" with NA again
+  mutate(across(everything(), ~ ifelse(. %in% na_strings, NA, .))) %>%
+
+  #where needed, add leading zeroes to other CJIS codes these and set 1-character values to missing
+  mutate(WarningCjisOffenseCodeS1 = if_else(nchar(WarningCjisOffenseCodeS1)==4, 
+                                                   paste0("0", WarningCjisOffenseCodeS1), 
+                                                   WarningCjisOffenseCodeS1)) %>%  
+  mutate(WarningCjisOffenseCodeS1 = if_else(nchar(WarningCjisOffenseCodeS1)==1, NA, 
+                                                   WarningCjisOffenseCodeS1)) %>%  
+  mutate(WarningCjisOffenseCodeS2 = if_else(nchar(WarningCjisOffenseCodeS2)==1, NA, 
+                                                   WarningCjisOffenseCodeS2)) %>%
+  mutate(CitationCjisOffenseCodeS1 = if_else(nchar(CitationCjisOffenseCodeS1)==4, 
+                                                   paste0("0", CitationCjisOffenseCodeS1), 
+                                                   CitationCjisOffenseCodeS1)) %>% 
+  mutate(InFieldCiteAndReleaseCjisOffenseCodeS1 = if_else(nchar(InFieldCiteAndReleaseCjisOffenseCodeS1)==4, 
+                                                   paste0("0", InFieldCiteAndReleaseCjisOffenseCodeS1), 
+                                                   InFieldCiteAndReleaseCjisOffenseCodeS1)) %>%  
+  mutate(InFieldCiteAndReleaseCjisOffenseCodeS1 = if_else(nchar(InFieldCiteAndReleaseCjisOffenseCodeS1)==1, NA, 
+                                                   InFieldCiteAndReleaseCjisOffenseCodeS1)) %>%  
+  mutate(InFieldCiteAndReleaseCjisOffenseCodeS2 = if_else(nchar(InFieldCiteAndReleaseCjisOffenseCodeS2)==4, 
+                                                   paste0("0", InFieldCiteAndReleaseCjisOffenseCodeS2), 
+                                                   InFieldCiteAndReleaseCjisOffenseCodeS2)) %>%
+    as_tibble()
+
+```
+
+```{r, stop19}
+r19stop <- readRDS("../Data/r19stop.rds")
+
+#cleanup column names
+r19stop.1 <- r19stop %>%
+  clean_names(., "big_camel")
+print(colnames(r19stop.1))
+
+#checked values and these all are fine - don't need cleaning
+
+dt_r19stop <- data.table(r19stop.1)
+
+```
+
+```{r, merge19}
+r19all<- merge(r19l_clean, dt_r19stop, 
+               by = 'DojRecordId')
+
+saveRDS(r19all, '../Data/r19all.rds')
+```
+
+```{r, CVC19}
+xwalk <- read_xlsx(path='E:/Process_RIPA/Data/RIPA-StopDataCollectionSystem-look-up-table-2023.v2_mode.xlsx',
+                    sheet='Offense Table', guess_max = 1600) %>% 
+  clean_names(., "big_camel") %>% 
+  select(c('OffenseCode', 'OffenseStatute', 'OffenseTypeOfStatuteCd', 'Mode', 'StatuteLiteral25')) %>% 
+  distinct(OffenseCode, .keep_all = TRUE)
+
+
+r19all <- readRDS("../Data/r19all.rds")
+
+dt_r19all <- data.table(r19all)
+dt_xwalk <- data.table(xwalk)
+r19cvc<- merge(dt_r19all, dt_xwalk, 
+               by.x = 'TrafficViolationCjisOffenseCode', by.y = 'OffenseCode', 
+               all.x = TRUE) %>% 
+  arrange(Mode, TrafficViolationCjisOffenseCode) %>% 
+  mutate(Mode = na_if(Mode, "NA")) %>% 
+  as_tibble()
+  
+```
+
+```{r, restrict20}
+
+r20names<-as.data.frame(colnames(r20))
+#write.csv(r20names,'../Data/r20names.csv')
+#Identical to 2018
+
+#isolate stop level variables
+ stopcol<-c(1, 3, 5:11, 14, 15)
+ r20stop<-r20[,..stopcol]
+ saveRDS(r20stop, '../Data/r20stop.rds')
+
+#isolate person level variables - these start in column 18 and repeat every 28
+#these are vars to keep in general - create one vector, then multiply each by 28 99 times
+one_pers<-c(18:20, 23, 27:30, 35, 40:44)
+repetitions<-99
+perscol<-numeric(length(one_pers) * repetitions)
+
+for (i in 1:repetitions) {
+  start_index<-(i-1)*length(one_pers) + 1
+  end_index<- i*length(one_pers)
+  perscol[start_index:end_index] <- one_pers + (i-1)*28
+}
+#don't forget to include unique id - column 1
+perscol<-c(1, perscol)
+ #print(perscol)
+
+r20pers<-r20[,..perscol]
+
+#prep for pivot longer by assigning suffixes
+#cols now have different numbers so re-examine
+pers20names<-as.data.frame(colnames(r20pers))
+#write.csv(pers20names,'../Data/pers20names.csv')
+
+#first remove the 1_4 from Perceived Gender columns
+names(r20pers)[names(r20pers) == "Perceived Gender 1-4"] <- "Perceived Gender"
+
+#give a numeric suffix to each set of person level variables, except DOJ ID
+existing_cols<-colnames(r20pers)
+new_cols<-existing_cols
+cols_to_suffix<-existing_cols[-1]
+#create suffixes and apply them
+n_fields<-length(cols_to_suffix)/repetitions
+suffixes<-rep(1:repetitions, each=n_fields)
+new_cols[-1]<-paste(cols_to_suffix, suffixes, sep="_")
+colnames(r20pers)<-new_cols
+
+print(colnames(r20pers))
+
+#before pivot, cleanup column names
+r20pers.1 <- r20pers %>%
+  clean_names(., "big_camel")
+#print(colnames(r20pers.1))
+
+saveRDS(r20pers.1, '../Data/r20pers_1.rds')
+```
+
+```{r, pivotlonger20}
+r20pers.1 <- readRDS("E:/Process_RIPA/Data/r20pers_1.rds")
+
+dt_r20pers <- data.table(r20pers.1)
+
+#first just remove person1 from the file and pivot_longer with them 
+#then delete all records with <2 people and pivot_longer separately
+#finally, stack the files
+#this needs to be done before pivot longer due to memory/size issues
+dt20_p1 <- dt_r20pers %>%
+  select(1:15) %>%
+     mutate(across(-DojRecordId, as.character)) %>% #coerce all columns to character
+   pivot_longer(
+     cols = -DojRecordId,
+     names_to=c("variable", "group"),
+     names_pattern="([a-zA-Z]+)([0-9]+)"
+   ) %>%
+   pivot_wider(
+     names_from = variable,
+     values_from = value)
+
+dt20_2plus <- dt_r20pers %>%
+  filter(!is.na(PersonNumber2)) %>%
+  select(1, 16:729) %>%
+       mutate(across(-DojRecordId, as.character)) %>% #coerce all columns to character
+   pivot_longer(
+     cols = -DojRecordId,
+     names_to=c("variable", "group"),
+     names_pattern="([a-zA-Z]+)([0-9]+)"
+   ) %>%
+   pivot_wider(
+     names_from = variable,
+     values_from = value) %>%
+  filter(if_any(-c(DojRecordId, group), ~ !is.na(.) & . !="")) # delete rows with NA or missing values
+
+r20long_clean <- rbind(dt20_p1, dt20_2plus) %>%
+  arrange(DojRecordId) %>%
+  as_tibble()
+
+# save this and move onto dealing with columns that have multiple entries
+saveRDS(r20long_clean, '../Data/r20long_clean.rds')
+```
+
+```{r, clean20}
+r20long_clean <- readRDS("E:/Process_RIPA/Data/r20long_clean.rds")
+str(r20long_clean)
+
+## Run descriptive statistics and examine records with non-conforming data
+## Generate fixes below and come back here to ensure correction has worked
+unique(r20all$PersonNumber) #one person labeled as "23132,48122" - delete entry (no data for this person)
+unique(r20long_clean$PerceivedGender) #all good
+unique(r20long_clean$PerceivedAge) #good
+unique(r20long_clean$ReasonForStop)  #good
+
+ unique(r20long_clean$TrafficViolationType) 
+  # one "" to be set to missing
+  # all others that are incorrect are speeding (add to 'moving')
+#fix below and make sure all is working correctly
+# look<-dt_r20l[TrafficViolationType %in% moving]
+# look2<-r20l_clean[r20l_clean$TrafficViolationType %in% moving,]
+
+ unique(r20long_clean$TrafficViolationCjisOffenseCode)
+#add non-5 digit numbers to lo_dig and fix
+# look<-dt_r20l[TrafficViolationCjisOffenseCode %in% lo_dig] #those with "1" are already taken care of above
+# look2<-r20l_clean[r20l_clean$TrafficViolationCjisOffenseCode %in% lo_dig,]
+
+#columns with multiple entries appear to be: ActionsTaken & Results of Stop - what else?
+ unique(r20long_clean$ActionsTaken) # These take the form "\"12,NA\"" with a # and Y, N or NA. 
+  #Repeat at least 24 times - try 30 times. 
+ unique(r20long_clean$PerceivedRaceOrEthnicity) #repeat 7
+ unique(r20long_clean$ContrabandOrEvidence) #repeat 10
+ unique(r20long_clean$ResultsOfStop) #repeat 5
+ unique(r20long_clean$WarningCjisOffenseCodeS) #repeat 5
+ unique(r20long_clean$CitationCjisOffenseCodeS) #repeat 5
+ unique(r20long_clean$InFieldCiteAndReleaseCjisOffenseCodeS) #repeat 5
+
+#to use dtplyr do lazy_dt(df) as first step before %>%  and then last step in pipes is as_tibble
+
+#first set NA values
+#then deal with one-off non-conforming values
+#this includes speed-related moving violations with narrative in place of type
+#this CJIS codes that are too short, includes adding leading 0s to 4 digit offense codes
+#finally, separate out columns with multiple comma separated codes
+na_strings<-c("", "N", "NA", "N/A") #list of NA values
+moving <- c("RADAR","PACE + RADAR", "LIDAR")
+lo_dig<-c("9198", "4052", "9151", "9155", "9180", "4022", "4062", "4033", 
+          "9201", "4071", "4051", "4059", "4053", "9150", "9005", "9157", 
+          "4043", "4047", "4068", "2052", "8030", "4072", "8008", "8034", "4055", 
+          "4042", "8023", "4032", "4037", "1", "3", "9176", "9147", "9203")
+pairs <- unlist(lapply(1:13, function(i) c(paste0("ActionsTaken", i, "_code"), paste0("ActionsTaken", i, "_YN"))))
+          
+
+dt_r20l <- data.table(r20long_clean)
+r20l_clean <- lazy_dt(dt_r20l) %>% 
+#first replace any values of "" or "N" with NA
+  mutate(across(everything(), ~ ifelse(. %in% na_strings, NA, .))) %>%
+
+#delete record with no data
+  filter(PersonNumber != "23132,48122") %>% 
+  
+#TrafficViolationType has some non-conforming free-text responses in it - fix below
+  mutate(TrafficViolationCjisOffenseCode = if_else(TrafficViolationType %in% moving, 
+                                                   "54106", TrafficViolationCjisOffenseCode)) %>%
+  mutate(ContrabandOrEvidence= if_else(TrafficViolationType %in% moving, "1", ContrabandOrEvidence)) %>%
+  mutate(ResultsOfStop=if_else(TrafficViolationType %in% moving, "3", ResultsOfStop)) %>%
+  mutate(WarningCjisOffenseCodeS=if_else(TrafficViolationType %in% moving, NA , WarningCjisOffenseCodeS)) %>% 
+  mutate(TrafficViolationType = if_else(TrafficViolationType %in% moving, "1", TrafficViolationType)) %>%
+
+#those with four digits need leading 0 and are correct - fix below
+  mutate(TrafficViolationCjisOffenseCode = if_else(nchar(TrafficViolationCjisOffenseCode)==4 
+                                                   & !(is.na(TrafficViolationCjisOffenseCode)), 
+                                                   paste0("0", TrafficViolationCjisOffenseCode), 
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+  #those with a 3 (or 1 with ViolationType==3) are a mess
+  #set Reason for Stop and Type to NA for all but list of traffic violations where CJIS offence is clear from narrative (n=5) - fixed
+
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'S194220263QSMNYJE4X0', '54185', 
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'S194220284PQQQMS71F0', '54398', 
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+  #2 people
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'S194220291L7NI5PSASY', '54575', 
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'W3404201019UB2JB2CHK', '54183', 
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+    
+    #  set Reason for Stop and Type to NA for others 
+  mutate(ReasonForStop = if_else(TrafficViolationCjisOffenseCode == "3" &
+                                   !(is.na(TrafficViolationCjisOffenseCode)), 
+                                 NA, ReasonForStop)) %>%
+  mutate(TrafficViolationType = if_else(TrafficViolationCjisOffenseCode == "3" 
+                                        & !(is.na(TrafficViolationCjisOffenseCode)), NA, TrafficViolationType)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = if_else(TrafficViolationCjisOffenseCode == "3" 
+                                                   & !(is.na(TrafficViolationCjisOffenseCode)), NA,
+                                                   TrafficViolationCjisOffenseCode)) %>%
+   
+  #finally create multiple new columns for each column with multiple comma separated values
+  separate(col=PerceivedRaceOrEthnicity, into=paste0("PerceivedRace", 1:7), sep=",", fill="right") %>% 
+  separate(col=ContrabandOrEvidence, into=paste0("ContrabandOrEvidence", 1:10), sep=",", fill="right") %>%
+  separate(col=ResultsOfStop, into=paste0("ResultsOfStop", 1:5), sep=",", fill="right") %>% 
+  separate(col=WarningCjisOffenseCodeS, into=paste0("WarningCjisOffenseCodeS", 1:5), sep=",", fill="right") %>% 
+  separate(col=CitationCjisOffenseCodeS, into=paste0("CitationCjisOffenseCodeS", 1:5), sep=",", fill="right") %>%
+  separate(col=InFieldCiteAndReleaseCjisOffenseCodeS, into=paste0("InFieldCiteAndReleaseCjisOffenseCodeS", 
+                                                                  1:5), sep=",", fill="right") %>%
+
+# deal with ActionsTaken, which has comma-separated values and number plus Y/N/NA
+  mutate(ActionsTaken = str_remove_all(ActionsTaken, '"')) %>% 
+  separate(col = ActionsTaken, into = pairs, sep = ",", fill = "right") %>%
+
+  # replace any values of "NA", "" or "N" with NA again
+  mutate(across(everything(), ~ ifelse(. %in% na_strings, NA, .))) %>%
+ 
+  #where needed, add leading zeroes to other CJIS codes these and set 1-character values to missing
+  mutate(WarningCjisOffenseCodeS1 = if_else(nchar(WarningCjisOffenseCodeS1)==4, 
+                                                   paste0("0", WarningCjisOffenseCodeS1), 
+                                                   WarningCjisOffenseCodeS1)) %>%  
+  mutate(WarningCjisOffenseCodeS1 = if_else(nchar(WarningCjisOffenseCodeS1)==1, NA, 
+                                                   WarningCjisOffenseCodeS1)) %>%  
+  mutate(WarningCjisOffenseCodeS2 = if_else(nchar(WarningCjisOffenseCodeS2)==1, NA, 
+                                                   WarningCjisOffenseCodeS2)) %>%
+  mutate(CitationCjisOffenseCodeS1 = if_else(nchar(CitationCjisOffenseCodeS1)==4, 
+                                                   paste0("0", CitationCjisOffenseCodeS1), 
+                                                   CitationCjisOffenseCodeS1)) %>%
+  mutate(CitationCjisOffenseCodeS1 = if_else(nchar(CitationCjisOffenseCodeS1)==1, NA, 
+                                                   CitationCjisOffenseCodeS1)) %>%
+  mutate(InFieldCiteAndReleaseCjisOffenseCodeS1 = if_else(nchar(InFieldCiteAndReleaseCjisOffenseCodeS1)==4, 
+                                                   paste0("0", InFieldCiteAndReleaseCjisOffenseCodeS1), 
+                                                   InFieldCiteAndReleaseCjisOffenseCodeS1)) %>%  
+  mutate(InFieldCiteAndReleaseCjisOffenseCodeS1 = if_else(nchar(InFieldCiteAndReleaseCjisOffenseCodeS1)==1, NA, 
+                                                   InFieldCiteAndReleaseCjisOffenseCodeS1)) %>%  
+    as_tibble()
+
+```
+
+```{r, stop20}
+r20stop <- readRDS("../Data/r20stop.rds")
+
+#cleanup column names
+r20stop.1 <- r20stop %>%
+  clean_names(., "big_camel")
+print(colnames(r20stop.1))
+
+#checked values and these all are fine - don't need cleaning
+
+dt_r20stop <- data.table(r20stop.1)
+
+```
+
+```{r, merge20}
+r20all<- merge(r20l_clean, dt_r20stop, 
+               by = 'DojRecordId')
+
+saveRDS(r20all, '../Data/r20all.rds')
+```
+
+```{r, CVC20}
+xwalk <- read_xlsx(path='E:/Process_RIPA/Data/RIPA-StopDataCollectionSystem-look-up-table-2023.v2_mode.xlsx',
+                    sheet='Offense Table', guess_max = 1600) %>% 
+  clean_names(., "big_camel") %>% 
+  select(c('OffenseCode', 'OffenseStatute', 'OffenseTypeOfStatuteCd', 'Mode', 'StatuteLiteral25')) %>% 
+  distinct(OffenseCode, .keep_all = TRUE)
+
+
+r20all <- readRDS("../Data/r20all.rds")
+
+dt_r20all <- data.table(r20all)
+dt_xwalk <- data.table(xwalk)
+r20cvc<- merge(dt_r20all, dt_xwalk, 
+               by.x = 'TrafficViolationCjisOffenseCode', by.y = 'OffenseCode', 
+               all.x = TRUE) %>% 
+  arrange(Mode, TrafficViolationCjisOffenseCode) %>% 
+  mutate(Mode = na_if(Mode, "NA")) %>% 
+  as_tibble()
+  
+```
+
+
+
+```{r, restrict21}
+r21names<-as.data.frame(colnames(r21))
+#write.csv(r21names,'../Data/r21names.csv')
+#Identical to 2018
+
+#isolate stop level variables
+ stopcol<-c(1, 2, 3, 5:11, 14, 15)
+ r21stop<-r21[,..stopcol]
+ saveRDS(r21stop, '../Data/r21stop.rds')
+
+#isolate person level variables - these start in column 18 and repeat every 28
+ #these are vars to keep in general - create one vector, then multiply each by 28 93 times
+one_pers<-c(18:20, 23, 27:30, 35, 40:44)
+repetitions<-93
+perscol<-numeric(length(one_pers) * repetitions)
+
+for (i in 1:repetitions) {
+  start_index<-(i-1)*length(one_pers) + 1
+  end_index<- i*length(one_pers)
+  perscol[start_index:end_index] <- one_pers + (i-1)*28
+}
+#don't forget to include unique id - column 1
+perscol<-c(1, perscol)
+ #print(perscol)
+
+r21pers<-r21[,..perscol]
+
+#prep for pivot longer by assigning suffixes
+#cols now have different numbers so re-examine
+pers21names<-as.data.frame(colnames(r21pers))
+#write.csv(pers21names,'../Data/pers21names.csv')
+
+#first remove the 1_4 from Perceived Gender columns
+names(r21pers)[names(r21pers) == "Perceived Gender 1-4"] <- "Perceived Gender"
+
+#give a numeric suffix to each set of person level variables, except DOJ ID
+existing_cols<-colnames(r21pers)
+new_cols<-existing_cols
+cols_to_suffix<-existing_cols[-1]
+#create suffixes and apply them
+n_fields<-length(cols_to_suffix)/repetitions
+suffixes<-rep(1:repetitions, each=n_fields)
+new_cols[-1]<-paste(cols_to_suffix, suffixes, sep="_")
+colnames(r21pers)<-new_cols
+
+print(colnames(r21pers))
+
+#before pivot, cleanup column names
+r21pers.1 <- r21pers %>%
+  clean_names(., "big_camel")
+#print(colnames(r21pers.1))
+
+saveRDS(r21pers.1, '../Data/r21pers_1.rds')
+```
+
+```{r, pivotlonger21}
+r21pers.1 <- readRDS("E:/Process_RIPA/Data/r21pers_1.rds")
+
+dt_r21pers <- data.table(r21pers.1)
+
+#first just remove person1 and 2 from the file and pivot_longer with them 
+#then delete all records with <3 people and pivot_longer separately
+#finally, stack the files
+#this needs to be done before pivot longer due to memory/size issues
+dt21_p2 <- dt_r21pers %>%
+  select(1:29) %>%
+     mutate(across(-DojRecordId, as.character)) %>% #coerce all columns to character
+   pivot_longer(
+     cols = -DojRecordId,
+     names_to=c("variable", "group"),
+     names_pattern="([a-zA-Z]+)([0-9]+)"
+   ) %>%
+   pivot_wider(
+     names_from = variable,
+     values_from = value)%>%
+  filter(if_any(-c(DojRecordId, group), ~ !is.na(.) & . !="")) # delete rows with NA or missing values
+
+dt21_3plus <- dt_r21pers %>%
+  filter(!is.na(PersonNumber3)) %>%
+  select(1, 30:729) %>%
+       mutate(across(-DojRecordId, as.character)) %>% #coerce all columns to character
+   pivot_longer(
+     cols = -DojRecordId,
+     names_to=c("variable", "group"),
+     names_pattern="([a-zA-Z]+)([0-9]+)"
+   ) %>%
+   pivot_wider(
+     names_from = variable,
+     values_from = value) %>%
+  filter(if_any(-c(DojRecordId, group), ~ !is.na(.) & . !="")) # delete rows with NA or missing values
+
+r21long_clean <- rbind(dt21_p2, dt21_3plus) %>%
+  arrange(DojRecordId) %>%
+  as_tibble()
+
+# save this and move onto dealing with columns that have multiple entries
+# saveRDS(r21long_clean, '../Data/r21long_clean.rds')
+```
+
+```{r, clean21}
+r21long_clean <- readRDS("E:/Process_RIPA/Data/r21long_clean.rds")
+str(r21long_clean)
+
+unique(r21long_clean$PerceivedGender) #values of -1 and -3 need to be made positive
+unique(r21long_clean$PerceivedAge) #One "" and one N to set to NA, one value of -120, one value of 445 (assume 45)
+unique(r21long_clean$ReasonForStop)  #One "" and one N to set to NA
+
+ unique(r21long_clean$TrafficViolationType) 
+  # one "" to be set to missing
+ #Actually all below are shifted and need to be fixed in the same way - all have PersonNumber==NA
+
+ unique(r21long_clean$TrafficViolationCjisOffenseCode)
+#add non-5 digit numbers to lo_dig and fix
+# look<-dt_r21l[TrafficViolationCjisOffenseCode %in% lo_dig] #those with "1" or "2" are already taken care of above
+# look2<-r21l_clean[r21l_clean$TrafficViolationCjisOffenseCode %in% lo_dig,]
+
+#columns with multiple entries appear to be: ActionsTaken & Results of Stop - what else?
+unique(r21long_clean$ActionsTaken) # These take the form "\"12,NA\"" with a # and Y, N or NA. 
+  #Repeat 28 times  
+ unique(r21long_clean$PerceivedRaceOrEthnicity) #repeat 7
+ unique(r21long_clean$ContrabandOrEvidence) #repeat 10
+ unique(r21long_clean$ResultsOfStop) #repeat 5
+ unique(r21long_clean$WarningCjisOffenseCodeS) #repeat 5
+ unique(r21long_clean$CitationCjisOffenseCodeS) #repeat 5
+ unique(r21long_clean$InFieldCiteAndReleaseCjisOffenseCodeS) #repeat 5
+
+#to use dtplyr do lazy_dt(df) as first step before %>%  and then last step in pipes is as_tibble
+
+#first set NA values
+#then deal with one-off non-conforming values
+#this includes speed-related moving violations with narrative in place of type
+#this CJIS codes that are too short, includes adding leading 0s to 4 digit offense codes
+#finally, separate out columns with multiple comma separated codes
+na_strings<-c("", "N", "NA", "N/A") #list of NA values
+lo_dig<-c("3", "4037", "2", "1005", "9150", "4071", "4068", "4062", "9155", 
+          "2052", "4059", "4031", "4055", "8041", "8039", "9005", "4022", 
+          "4025", "9151", "4051", "4048", "4042", "4053", "9200", "4072", 
+          "4032", "1",  "9176", "4066", "4027", "8030", "4043", "9175", 
+          "8008", "8043", "4064", "4052", "9185", "9146", "9157")
+ 
+pairs <- unlist(lapply(1:14, function(i) c(paste0("ActionsTaken", i, "_code"), paste0("ActionsTaken", i, "_YN"))))
+          
+
+dt_r21l <- data.table(r21long_clean)
+r21l_clean <- lazy_dt(dt_r21l) %>% 
+#first replace any values of "" or "N" with NA
+  mutate(across(everything(), ~ ifelse(. %in% na_strings, NA, .))) %>%
+
+#fix two negative gender values, one negative age value, and one high age value
+  mutate(PerceivedGender = if_else(PerceivedGender == "-1", "1", PerceivedGender)) %>% 
+  mutate(PerceivedGender = if_else(PerceivedGender == "-3", "3", PerceivedGender)) %>% 
+  mutate(PerceivedAge = if_else(PerceivedAge == "-120", "120", PerceivedAge)) %>% 
+  mutate(PerceivedAge = if_else(PerceivedAge == "445", "45", PerceivedAge)) %>% 
+
+#TrafficViolationType has some non-conforming free-text responses in it 
+#all of below need to shift items left - ID with is.na(PersonNumber)
+  mutate(PerceivedRaceOrEthnicity = if_else(is.na(PersonNumber), PerceivedGender, PerceivedRaceOrEthnicity)) %>% 
+  mutate(PerceivedGender = if_else(is.na(PersonNumber), ReasonForStop, PerceivedGender)) %>%
+  mutate(ReasonForStop = if_else(is.na(PersonNumber), ReasonForStopNarrative, ReasonForStop)) %>%
+  mutate(ReasonForStopNarrative = if_else(is.na(PersonNumber), TrafficViolationType, ReasonForStopNarrative)) %>%
+#this one is not all correct just to shift - deal with individually where needed
+    mutate(TrafficViolationType = if_else((is.na(PersonNumber) 
+                                           & !(DojRecordId %in% c("W349922072PZSVF92X09", "W349922072TEQPC6T0UZ"))),
+                                            TrafficViolationCjisOffenseCode, TrafficViolationType)) %>%
+    mutate(TrafficViolationType = if_else(DojRecordId == "W349922072PZSVF92X09", "1", TrafficViolationType)) %>%
+    mutate(TrafficViolationType = if_else(DojRecordId == "W349922072TEQPC6T0UZ", "2", TrafficViolationType)) %>%
+  
+  mutate(TrafficViolationCjisOffenseCode= if_else(is.na(PersonNumber), CitationCjisOffenseCodeS,
+                                                  TrafficViolationCjisOffenseCode)) %>%
+  mutate(ContrabandOrEvidence= if_else(is.na(PersonNumber), ResultsOfStop, ContrabandOrEvidence)) %>%
+  mutate(ResultsOfStop=if_else(is.na(PersonNumber), WarningCjisOffenseCodeS, ResultsOfStop)) %>%
+  mutate(WarningCjisOffenseCodeS=if_else(is.na(PersonNumber), CitationCjisOffenseCodeS , WarningCjisOffenseCodeS)) %>%
+  mutate(CitationCjisOffenseCodeS =if_else(is.na(PersonNumber), InFieldCiteAndReleaseCjisOffenseCodeS,
+                                           CitationCjisOffenseCodeS)) %>%
+  mutate(InFieldCiteAndReleaseCjisOffenseCodeS =if_else(is.na(PersonNumber), NA,
+                                           InFieldCiteAndReleaseCjisOffenseCodeS)) %>%
+  mutate(PersonNumber = if_else(is.na(PersonNumber), "1", PersonNumber)) %>% 
+
+  #those with four digits need leading 0 and are correct - fix below
+  mutate(TrafficViolationCjisOffenseCode = if_else(nchar(TrafficViolationCjisOffenseCode)==4 
+                                                   & !(is.na(TrafficViolationCjisOffenseCode)), 
+                                                   paste0("0", TrafficViolationCjisOffenseCode), 
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+  #those with a 3 are a mess not VC violations except the two already fixed above
+  #set Reason for Stop and Type to NA for all but traffic violations from above
+  mutate(ReasonForStop = if_else(TrafficViolationCjisOffenseCode == "3" & 
+                                   !(DojRecordId %in% c("W349922072PZSVF92X09", "W349922072TEQPC6T0UZ")) & 
+                                   !(is.na(TrafficViolationCjisOffenseCode)), NA, ReasonForStop)) %>%
+  mutate(TrafficViolationType = if_else(TrafficViolationCjisOffenseCode == "3" & 
+                                   !(DojRecordId %in% c("W349922072PZSVF92X09", "W349922072TEQPC6T0UZ")) & 
+                                   !(is.na(TrafficViolationCjisOffenseCode)), NA, TrafficViolationType)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = if_else(TrafficViolationCjisOffenseCode == "3" & 
+                                   !(DojRecordId %in% c("W349922072PZSVF92X09", "W349922072TEQPC6T0UZ")) & 
+                                   !(is.na(TrafficViolationCjisOffenseCode)), NA, TrafficViolationCjisOffenseCode)) %>%
+  
+  #finally create multiple new columns for each column with multiple comma separated values
+  separate(col=PerceivedRaceOrEthnicity, into=paste0("PerceivedRace", 1:7), sep=",", fill="right") %>%
+  separate(col=ContrabandOrEvidence, into=paste0("ContrabandOrEvidence", 1:9), sep=",", fill="right") %>%
+  separate(col=ResultsOfStop, into=paste0("ResultsOfStop", 1:5), sep=",", fill="right") %>% 
+  separate(col=WarningCjisOffenseCodeS, into=paste0("WarningCjisOffenseCodeS", 1:5), sep=",", fill="right") %>% 
+  separate(col=CitationCjisOffenseCodeS, into=paste0("CitationCjisOffenseCodeS", 1:5), sep=",", fill="right") %>%
+  separate(col=InFieldCiteAndReleaseCjisOffenseCodeS, into=paste0("InFieldCiteAndReleaseCjisOffenseCodeS", 
+                                                                  1:5), sep=",", fill="right") %>%
+  
+# Deal with ActionsTaken, which has comma-separated values and number plus Y/N/NA
+  mutate(ActionsTaken = str_remove_all(ActionsTaken, '"')) %>% 
+  separate(col = ActionsTaken, into = pairs, sep = ",", fill = "right") %>%
+
+  # replace any values of "NA", "" or "N" with NA again
+  mutate(across(everything(), ~ ifelse(. %in% na_strings, NA, .))) %>%
+  
+  #where needed, add leading zeroes to other CJIS codes these and set 1-character values to missing
+  mutate(WarningCjisOffenseCodeS1 = if_else(nchar(WarningCjisOffenseCodeS1)==4, 
+                                                   paste0("0", WarningCjisOffenseCodeS1), 
+                                                   WarningCjisOffenseCodeS1)) %>%  
+  mutate(WarningCjisOffenseCodeS1 = if_else(nchar(WarningCjisOffenseCodeS1)==1, NA, 
+                                                   WarningCjisOffenseCodeS1)) %>%  
+  mutate(CitationCjisOffenseCodeS1 = if_else(nchar(CitationCjisOffenseCodeS1)==4, 
+                                                   paste0("0", CitationCjisOffenseCodeS1), 
+                                                   CitationCjisOffenseCodeS1)) %>%
+  mutate(CitationCjisOffenseCodeS1 = if_else(nchar(CitationCjisOffenseCodeS1)==1, NA, 
+                                                   CitationCjisOffenseCodeS1)) %>%
+  mutate(CitationCjisOffenseCodeS2 = if_else(nchar(CitationCjisOffenseCodeS2)==4, 
+                                                   paste0("0", CitationCjisOffenseCodeS2), 
+                                                   CitationCjisOffenseCodeS2)) %>%
+  mutate(InFieldCiteAndReleaseCjisOffenseCodeS1 = if_else(nchar(InFieldCiteAndReleaseCjisOffenseCodeS1)==4, 
+                                                   paste0("0", InFieldCiteAndReleaseCjisOffenseCodeS1), 
+                                                   InFieldCiteAndReleaseCjisOffenseCodeS1)) %>%  
+  mutate(InFieldCiteAndReleaseCjisOffenseCodeS1 = if_else(nchar(InFieldCiteAndReleaseCjisOffenseCodeS1)==1, NA, 
+                                                   InFieldCiteAndReleaseCjisOffenseCodeS1)) %>%  
+    as_tibble()
+
+```
+
+```{r, stop21}
+r21stop <- readRDS("../Data/r21stop.rds")
+
+#cleanup column names
+r21stop.1 <- r21stop %>%
+  clean_names(., "big_camel")
+print(colnames(r21stop.1))
+
+#checked values and these all are fine - don't need cleaning
+
+dt_r21stop <- data.table(r21stop.1)
+
+```
+
+```{r, merge21}
+r21all<- merge(r21l_clean, dt_r21stop, 
+               by = 'DojRecordId')
+
+saveRDS(r21all, '../Data/r21all.rds')
+```
+
+```{r, CVC21}
+xwalk <- read_xlsx(path='E:/Process_RIPA/Data/RIPA-StopDataCollectionSystem-look-up-table-2023.v2_mode.xlsx',
+                    sheet='Offense Table', guess_max = 1600) %>% 
+  clean_names(., "big_camel") %>% 
+  select(c('OffenseCode', 'OffenseStatute', 'OffenseTypeOfStatuteCd', 'Mode', 'StatuteLiteral25')) %>% 
+  distinct(OffenseCode, .keep_all = TRUE)
+
+
+r21all <- readRDS("../Data/r21all.rds")
+
+dt_r21all <- data.table(r21all)
+dt_xwalk <- data.table(xwalk)
+r21cvc<- merge(dt_r21all, dt_xwalk, 
+               by.x = 'TrafficViolationCjisOffenseCode', by.y = 'OffenseCode', 
+               all.x = TRUE) %>% 
+  arrange(Mode, TrafficViolationCjisOffenseCode) %>% 
+  mutate(Mode = na_if(Mode, "NA")) %>% 
+  as_tibble()
+
+  
+```
+
+
+```{r, restrict22}
+r22names<-as.data.frame(colnames(r22))
+#write.csv(r22names,'../Data/r22names.csv')
+#Identical to 2018
+
+#isolate stop level variables
+ stopcol<-c(1, 3, 5:11, 14, 15)
+ r22stop<-r22[,..stopcol]
+ saveRDS(r22stop, '../Data/r22stop.rds')
+
+#isolate person level variables - these start in column 18 and repeat every 28
+these are vars to keep in general - create one vector, then multiply each by 28 99 times
+one_pers<-c(18:20, 23, 27:30, 35, 40:44)
+repetitions<-99
+perscol<-numeric(length(one_pers) * repetitions)
+
+for (i in 1:repetitions) {
+  start_index<-(i-1)*length(one_pers) + 1
+  end_index<- i*length(one_pers)
+  perscol[start_index:end_index] <- one_pers + (i-1)*28
+}
+#don't forget to include unique id - column 1
+perscol<-c(1, perscol)
+ #print(perscol)
+
+r22pers<-r22[,..perscol]
+
+#prep for pivot longer by assigning suffixes
+#cols now have different numbers so re-examine
+pers22names<-as.data.frame(colnames(r22pers))
+#write.csv(pers22names,'../Data/pers22names.csv')
+
+#first remove the 1_4 from Perceived Gender columns
+names(r22pers)[names(r22pers) == "Perceived Gender 1-4"] <- "Perceived Gender"
+
+#give a numeric suffix to each set of person level variables, except DOJ ID
+existing_cols<-colnames(r22pers)
+new_cols<-existing_cols
+cols_to_suffix<-existing_cols[-1]
+#create suffixes and apply them
+n_fields<-length(cols_to_suffix)/repetitions
+suffixes<-rep(1:repetitions, each=n_fields)
+new_cols[-1]<-paste(cols_to_suffix, suffixes, sep="_")
+colnames(r22pers)<-new_cols
+
+print(colnames(r22pers))
+
+#before pivot, cleanup column names
+r22pers.1 <- r22pers %>%
+  clean_names(., "big_camel")
+#print(colnames(r22pers.1))
+
+saveRDS(r22pers.1, '../Data/r22pers_1.rds')
+```
+
+```{r, pivotlonger22}
+r22pers.1 <- readRDS("E:/Process_RIPA/Data/r22pers_1.rds")
+
+dt_r22pers <- data.table(r22pers.1)
+
+#first just remove person1 and 2 from the file and pivot_longer with them 
+#then delete all records with <3 people and pivot_longer separately
+#finally, stack the files
+#this needs to be done before pivot longer due to memory/size issues
+dt22_p2 <- dt_r22pers %>%
+  select(1:29) %>%
+     mutate(across(-DojRecordId, as.character)) %>% #coerce all columns to character
+   pivot_longer(
+     cols = -DojRecordId,
+     names_to=c("variable", "group"),
+     names_pattern="([a-zA-Z]+)([0-9]+)"
+   ) %>%
+   pivot_wider(
+     names_from = variable,
+     values_from = value)%>%
+  filter(if_any(-c(DojRecordId, group), ~ !is.na(.) & . !="")) # delete rows with NA or missing values
+
+dt22_3plus <- dt_r22pers %>%
+  filter(!is.na(PersonNumber3)) %>%
+  select(1, 30:729) %>%
+       mutate(across(-DojRecordId, as.character)) %>% #coerce all columns to character
+   pivot_longer(
+     cols = -DojRecordId,
+     names_to=c("variable", "group"),
+     names_pattern="([a-zA-Z]+)([0-9]+)"
+   ) %>%
+   pivot_wider(
+     names_from = variable,
+     values_from = value) %>%
+  filter(if_any(-c(DojRecordId, group), ~ !is.na(.) & . !="")) # delete rows with NA or missing values
+
+r22long_clean <- rbind(dt22_p2, dt22_3plus) %>%
+  arrange(DojRecordId) %>%
+  as_tibble()
+
+# save this and move onto dealing with columns that have multiple entries
+ saveRDS(r22long_clean, '../Data/r22long_clean.rds')
+```
+
+
+```{r, clean22}
+ r22long_clean <- readRDS("E:/Process_RIPA/Data/r22long_clean.rds")
+#str(r22long_clean)
+
+ unique(r22long_clean$PerceivedGender) #values of -1 need to be made positive
+ unique(r22long_clean$PerceivedAge) #One """ and one N to"1336" and "9999" set to NA, one value of -120
+unique(r22long_clean$ReasonForStop)  #good 
+
+ unique(r22long_clean$TrafficViolationType) 
+  # one "" to be set to missing
+#for each of below set type to violation code, violation code to citation code, contraband to results, results to warning code, warning code to citation code and citation code to NA (but set type last since that's identifier)
+  # one obscured plates
+  # two park on freeway - yes moving
+  # one seat belt, actually type here should be 2
+  # one follow too close
+  # one handheld device, move type info into narrative
+ 
+#for each of below set type to violation code, violation code to in field citation code, contraband to results, results to warning code, warning code to NA and citation code to in field citation (but set type last since that's identifier)
+  # one speeding so actually violation code is 54106
+  # one handheld device
+  # one expired reg, move type info into narrative and type should be 3 (non-moving)
+  # one expire reg
+ 
+#for each of below set violation code to in field citation code, contraband to warning code, results to citation code, warning code to in field citation and both citation code and in field citation code to NA (but set type last since that's identifier)
+  # one expired reg, set type to be 3
+  # one cross solid lines freeway, move type into narrative and set type to 1
+
+TypeIssue1 <-r22long_clean %>% filter(TrafficViolationType %in% c("ILLEGIBLE", "TN 28 OF XXXXXXX", 
+                                                                  "PRIOR MEDICAL CLEARANCE", "TX 28 OF XXXXXXX", 
+                                                                  "27 OF XXXXXXX", "FILMING ON PHONE")) %>% 
+  select(DojRecordId) %>% 
+  as.vector() %>% unlist()
+
+TypeIssue2 <-r22long_clean %>% filter(TrafficViolationType %in% c("SOLO IN HOV", "KIDS IN THE BACK", 
+                                                                  "EXP REG 12/21", "SIL HYUNDAI XXXXXXX")) %>% 
+  select(DojRecordId)%>% 
+  as.vector() %>% unlist()
+
+TypeIssue3 <-r22long_clean %>% filter(TrafficViolationType %in% c("27 OF XXXXXXX", "27 OF XXXXXXXX")) %>% 
+  select(DojRecordId)%>% 
+  as.vector() %>% unlist()
+
+ unique(r22long_clean$TrafficViolationCjisOffenseCode)
+#add non-5 digit numbers to lo_dig and fix
+# look<-dt_r22l[TrafficViolationCjisOffenseCode %in% lo_dig]
+# look2<-r22l_clean[r22l_clean$TrafficViolationCjisOffenseCode %in% lo_dig,]
+ 
+#   #expired registration   
+#   S194222219SLJDPJJADR - expired registration - 54099, change type to 3
+#   S57002227843JS6F2KKJ - expired registration - 54099, change type to 3
+#   W349622264DXYFU1NCXH - expired registration - 54099, change type to 3
+#   W349622278FLF9XXSG3U - expired registration - 54099, change type to 3
+#   W431322145UTYUFOV0PJ - expired registration - 54099, change type to 3  
+#   W4806222551ZHF2V1YSH - expired registration - 54099, change type to 3  
+#   W480622255BNU6XMQ4BJ - expired registration - 54099, change type to 3  
+#   W480622255JTG75OY2XI - expired registration - 54099, change type to 3  
+#   W480622353C4N5KWOD1J - expired registration - 54099, change type to 3
+#   W480622353PYPNMHZG1B - expired registration - 54099, change type to 3
+#   W480622361MKSMTJQ4XC - expired registration - 54099, change type to 3
+# 
+#   W431322161BZZMZO3V2L -expired registration - 54657 - narrative to "expired registration", type to 3
+# 
+#   #no license
+#   W349622264IT3GZN6MM9 - no license plate - 54644, change type to 2
+#   W349622264WFS0D4SJ6K - no license plate - 54644, change type to 2
+#   W431322142ZCT9ALRWFT - no license plate - 54644, change type to 2
+#   W480622255MHTL96H3IY - no license plate - 54644, change type to 2
+#   W431322229JB73MV43TD - no license plate - 54644, change type to 2
+# 
+#   W431322101F2AB5DTLOE - no front plate, 54645 - change type to 2
+#   
+# #stop sign violation
+#   W410922137FT1CJXSGTR - STOP SIGN - 54167
+#   W431322207B116B4XGWE - STOP SIGN - 54167, change type to 1
+#   
+# #window tint  
+#   W431322288EPOTB3NDHQ - window tint, 54015 - change type to 2
+#   W431422139BTA88ZE9YS - window tint, 54015 - change type to 2
+# 
+# #yes CVC violation but unclear, set type and violation to NA      
+#   W392422346EPOFYGE2SN - set to NA
+#   W392422346YADKZ4CHLP - set to NA
+#   W3924223462O5DSWD798 - set NA
+#   W431322093M8XK8LISI9 - set to NA
+#   W4313221420B1H1LXOMZ - set to NA
+# 
+#   W431322092TQVAGQ0ASK - EQUIPMENT VIOLATION - set NA, change type to 2
+# 
+# #deal with each of below separately
+#   S194222261RLUUZRH1TQ - impeding traffic- 54306, type to 1
+#   W430722249H0Y7BFXI3Q - improper passing - 54389, type to 1
+#   W431322125KYTUN77JS4 - headlights, 54014 - change type to 2
+#   W431322125QP4N28PYYK - bike lights, 54141 - change type to 2
+#   W431322126RSWWELRR1F - suspended license - 54083 - change type to 3
+#   W431322244GZ8HXZX4JP - wrong way  - 54161, change to 1
+#   W431322267ELKO3NDMNF - turn  against signal - 54185, change type to 1
+#   W431322277E9S68I2B08 - seat belt , 66985, change type to 3
+#   W431322288817RP7EXNR - unsafe entry of roadway, 54299 - change to type 1
+#   W480622111IFCLQ4LRMG - walking in roadway, 54162 - change type to 1
+#   W431322105K6R8768CVD - drive without license - 42127, type to 3
+
+#columns with multiple entries appear to be: ActionsTaken & Results of Stop - what else?
+ unique(r22long_clean$ActionsTaken) # These take the form "\"12,NA\"" with a # and Y, N or NA. 
+  #Repeat at least 26 times. 
+ unique(r22long_clean$PerceivedRaceOrEthnicity) #repeat 7 - one record is only "35353" - no other data here so delete
+ unique(r22long_clean$ContrabandOrEvidence) #repeat 10
+ unique(r22long_clean$ResultsOfStop) #repeat 7
+ unique(r22long_clean$WarningCjisOffenseCodeS) #repeat 5
+ unique(r22long_clean$CitationCjisOffenseCodeS) #repeat 5
+ unique(r22long_clean$InFieldCiteAndReleaseCjisOffenseCodeS) #repeat 5
+
+#to use dtplyr do lazy_dt(df) as first step before %>%  and then last step in pipes is as_tibble
+
+#first set NA values
+#then deal with one-off non-conforming values
+#this includes speed-related moving violations with narrative in place of type
+#this CJIS codes that are too short, includes adding leading 0s to 4 digit offense codes
+#finally, separate out columns with multiple comma separated codes
+na_strings<-c("", "N", "NA", "N/A") #list of NA values
+lo_dig<-c("4043", "1004", "8030", "9005", "9157", "4021", "8001", "-120", "4072", 
+          "4055", "4059", "8008", "9181", "1009", "3004", "4019", "4049", "4032", "3", 
+          "4033", "4022", "4017", "2", "4051", "3052", "8023", "3068", "9151", "4069", 
+          "2053", "4042", "4044", "4037", "2052", "4026", "4027", "9150", "9146", 
+          "9147", "9176", "4053", "4061", "9185", "4052", "1", "9200", "8039") 
+  
+ 
+pairs <- unlist(lapply(1:16, function(i) c(paste0("ActionsTaken", i, "_code"), paste0("ActionsTaken", i, "_YN"))))
+
+
+dt_r22l <- data.table(r22long_clean)
+r22l_clean <- lazy_dt(dt_r22l) %>% 
+#first replace any values of "" or "N" with NA
+  mutate(across(everything(), ~ ifelse(. %in% na_strings, NA, .))) %>%
+  
+#delete record with no real data
+  filter(PerceivedRaceOrEthnicity !="35353") %>% 
+  
+#fix  negative gender values and negative/nonsensical age values
+  mutate(PerceivedGender = if_else(PerceivedGender == "-1", "1", PerceivedGender)) %>% 
+  mutate(PerceivedAge = if_else(PerceivedAge == "-120", "120", PerceivedAge)) %>% 
+  mutate(PerceivedAge = if_else(PerceivedAge %in% c("1336", "9999"), NA, PerceivedAge)) %>% 
+
+  
+#TrafficViolationType has some non-conforming free-text responses in it - three groups see above
+  
+#for each of below set type to violation code, violation code to citation code, contraband to results, results to warning code, warning code to citation code and citation code to NA. Add some exceptions.
+  mutate(TrafficViolationType = 
+           if_else(DojRecordId %in% TypeIssue1, TrafficViolationCjisOffenseCode, TrafficViolationType)) %>%
+    mutate(TrafficViolationCjisOffenseCode = 
+           if_else(DojRecordId %in% TypeIssue1, CitationCjisOffenseCodeS, TrafficViolationCjisOffenseCode)) %>%
+  mutate(ContrabandOrEvidence= if_else(DojRecordId %in% TypeIssue1, ResultsOfStop, ContrabandOrEvidence)) %>%
+  mutate(ResultsOfStop=if_else(DojRecordId %in% TypeIssue1, WarningCjisOffenseCodeS, ResultsOfStop)) %>%
+  mutate(WarningCjisOffenseCodeS=if_else(DojRecordId %in% TypeIssue1, CitationCjisOffenseCodeS,
+                                         WarningCjisOffenseCodeS)) %>%
+  mutate(CitationCjisOffenseCodeS=if_else(DojRecordId %in% TypeIssue1, NA,
+                                         CitationCjisOffenseCodeS)) %>%
+  mutate(ReasonForStopNarrative = 
+           if_else(DojRecordId== 'W349923018XUSF0XZTAY', "FILMING ON PHONE", ReasonForStopNarrative)) %>%
+  mutate(CitationCjisOffenseCodeS=if_else(DojRecordId == "W349923018XUSF0XZTAY", InFieldCiteAndReleaseCjisOffenseCodeS,
+                                         CitationCjisOffenseCodeS)) %>%
+  mutate(InFieldCiteAndReleaseCjisOffenseCodeS=if_else(DojRecordId == "W349923018XUSF0XZTAY", NA,
+                                         InFieldCiteAndReleaseCjisOffenseCodeS)) %>%
+  mutate(TrafficViolationType = 
+           if_else(DojRecordId == 'W3499230189MVPKLWCZN', "2", TrafficViolationType)) %>%
+
+  #for each of below set type to violation code, violation code to in field citation code, contraband to results, results to warning code, warning and in field citations code to NA and citation code to in field citation. Add some exceptions.
+  mutate(TrafficViolationType = 
+           if_else(DojRecordId %in% TypeIssue2, TrafficViolationCjisOffenseCode, TrafficViolationType)) %>%
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId %in% TypeIssue2, InFieldCiteAndReleaseCjisOffenseCodeS,
+                                                     TrafficViolationCjisOffenseCode)) %>%
+  mutate(ContrabandOrEvidence= if_else(DojRecordId %in% TypeIssue2, ResultsOfStop, ContrabandOrEvidence)) %>%
+  mutate(ResultsOfStop=if_else(DojRecordId %in% TypeIssue2, WarningCjisOffenseCodeS, ResultsOfStop)) %>%
+  mutate(WarningCjisOffenseCodeS=if_else(DojRecordId %in% TypeIssue2, NA, WarningCjisOffenseCodeS)) %>%
+  mutate(CitationCjisOffenseCodeS=if_else(DojRecordId %in% TypeIssue2, InFieldCiteAndReleaseCjisOffenseCodeS,
+                                         CitationCjisOffenseCodeS)) %>%
+  mutate(InFieldCiteAndReleaseCjisOffenseCodeS=if_else(DojRecordId %in% TypeIssue2, NA,
+                                                       InFieldCiteAndReleaseCjisOffenseCodeS)) %>%
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == "W3499230187KLZPZR9OK", "54106",
+                                                     TrafficViolationCjisOffenseCode)) %>%
+  mutate(ReasonForStopNarrative = 
+           if_else(DojRecordId== "W349923018AYOUF55CWG", "EXP REG 12/21", ReasonForStopNarrative)) %>%
+  mutate(TrafficViolationType = 
+           if_else(DojRecordId == 'W349923018AYOUF55CWG', "3", TrafficViolationType)) %>%
+
+
+#for each of below set violation code to in field citation code, contraband to warning code, results to citation code, warning code to in field citation and both citation code and in field citation code to NA. Add some exceptions.
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId %in% TypeIssue3, InFieldCiteAndReleaseCjisOffenseCodeS,
+                                                     TrafficViolationCjisOffenseCode)) %>%
+  mutate(ContrabandOrEvidence= if_else(DojRecordId %in% TypeIssue3, WarningCjisOffenseCodeS, ContrabandOrEvidence)) %>%
+  mutate(ResultsOfStop=if_else(DojRecordId %in% TypeIssue3, CitationCjisOffenseCodeS, ResultsOfStop)) %>%
+  mutate(WarningCjisOffenseCodeS=if_else(DojRecordId %in% TypeIssue3, InFieldCiteAndReleaseCjisOffenseCodeS,
+                                         WarningCjisOffenseCodeS)) %>%
+  mutate(CitationCjisOffenseCodeS=if_else(DojRecordId %in% TypeIssue3, NA, CitationCjisOffenseCodeS)) %>%
+  mutate(InFieldCiteAndReleaseCjisOffenseCodeS=if_else(DojRecordId %in% TypeIssue3, NA,
+                                                       InFieldCiteAndReleaseCjisOffenseCodeS)) %>%
+  mutate(TrafficViolationType = 
+           if_else(DojRecordId == 'W349923018A6A1KH9YBG', "3", TrafficViolationType)) %>%
+
+  mutate(ReasonForStopNarrative = if_else(DojRecordId== "W349923018GP7OSEJ9I7", "CROSS DBL HOV LINES", 
+                                          ReasonForStopNarrative)) %>%
+  mutate(TrafficViolationType = if_else(DojRecordId == 'W349923018GP7OSEJ9I7', "1", TrafficViolationType)) %>%
+
+
+#those with -120 are almost all tinted windows (offense code 54015) - exceptions are the following IDs: 
+  #S19622234965K182M5J7, S4006230615VL7VPRYTS, S400623061BS6KTA2R8B, S4310221043YM2THM8OI, S431022104AY1XLU5H6T, S431022104GYX4M3ZUFX,  (driver on cell phone - set to 54655, set type to 1)
+  #S196222349DV1THUFVCW ("traffic violation - set to NA)
+#deal with -120 first before four digits because they're getting counted there
+  mutate(TrafficViolationCjisOffenseCode=replace(TrafficViolationCjisOffenseCode,
+                                                 TrafficViolationCjisOffenseCode == "-120", "54015"))  %>% 
+#those with four digits need leading 0 and are correct - fix below
+  mutate(TrafficViolationCjisOffenseCode = if_else(nchar(TrafficViolationCjisOffenseCode)==4 
+                                                   & !(is.na(TrafficViolationCjisOffenseCode)), 
+                                                   paste0("0", TrafficViolationCjisOffenseCode), 
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+  mutate(TrafficViolationCjisOffenseCode=
+           if_else(DojRecordId %in% 
+                     c("S19622234965K182M5J7", "S4006230615VL7VPRYTS", "S400623061BS6KTA2R8B", 
+                       "S4310221043YM2THM8OI", "S431022104AY1XLU5H6T", "S431022104GYX4M3ZUFX"), "54655",
+                                                 TrafficViolationCjisOffenseCode))  %>% 
+  mutate(TrafficViolationType=
+           if_else(DojRecordId %in% 
+                     c("S19622234965K182M5J7", "S4006230615VL7VPRYTS", "S400623061BS6KTA2R8B", 
+                       "S4310221043YM2THM8OI", "S431022104AY1XLU5H6T", "S431022104GYX4M3ZUFX"), "1",
+                                                 TrafficViolationType))  %>% 
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == "S196222349DV1THUFVCW", NA,
+                                                 TrafficViolationCjisOffenseCode))  %>% 
+
+#those with a 1 and 2 already taken care of above
+  #those with a 3 (or 1 with ViolationType==3) 
+  #set Reason for Stop and Type to NA for all but traffic violations listed (see below)
+  
+  #first do expired registrations
+  mutate(TrafficViolationCjisOffenseCode = 
+           if_else(DojRecordId %in% c('S194222219SLJDPJJADR', 'S57002227843JS6F2KKJ', 
+                                      'W349622264DXYFU1NCXH', 'W349622278FLF9XXSG3U', 
+                                      'W431322145UTYUFOV0PJ', 'W4806222551ZHF2V1YSH',
+                                      'W480622255BNU6XMQ4BJ', 'W480622255JTG75OY2XI',
+                                      'W480622353C4N5KWOD1J', 'W480622353PYPNMHZG1B', 
+                                      'W480622361MKSMTJQ4XC'), 
+                                      '54099', TrafficViolationCjisOffenseCode)) %>%
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'W431322161BZZMZO3V2L', 
+                                      '54657', TrafficViolationCjisOffenseCode)) %>%
+  mutate(TrafficViolationType =
+           if_else(DojRecordId %in% c('S194222219SLJDPJJADR', 'S57002227843JS6F2KKJ', 
+                                      'W349622264DXYFU1NCXH', 'W349622278FLF9XXSG3U', 
+                                      'W431322145UTYUFOV0PJ', 'W4806222551ZHF2V1YSH',
+                                      'W480622255BNU6XMQ4BJ', 'W480622255JTG75OY2XI',
+                                      'W480622353C4N5KWOD1J', 'W480622353PYPNMHZG1B', 
+                                      'W480622361MKSMTJQ4XC', 'W431322161BZZMZO3V2L'), 
+                   "3", TrafficViolationType)) %>% 
+  mutate(ReasonForStopNarrative = if_else(DojRecordId == 'W431322161BZZMZO3V2L', 
+                                      'expired registration', ReasonForStopNarrative)) %>%
+#no license
+  mutate(TrafficViolationCjisOffenseCode = 
+           if_else(DojRecordId %in% c('W349622264IT3GZN6MM9', 'W349622264WFS0D4SJ6K', 
+                                      'W431322142ZCT9ALRWFT', 'W480622255MHTL96H3IY', 
+                                      'W431322229JB73MV43TD'), 
+                                      '54644', TrafficViolationCjisOffenseCode)) %>%
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'W431322101F2AB5DTLOE', 
+                                      '54645', TrafficViolationCjisOffenseCode)) %>%
+  mutate(TrafficViolationType =
+           if_else(DojRecordId %in% c('W349622264IT3GZN6MM9', 'W349622264WFS0D4SJ6K', 
+                                      'W431322142ZCT9ALRWFT', 'W480622255MHTL96H3IY', 
+                                      'W431322229JB73MV43TD', 'W431322101F2AB5DTLOE'), 
+                   "2", TrafficViolationType)) %>% 
+
+#stop sign violation
+  mutate(TrafficViolationCjisOffenseCode = 
+           if_else(DojRecordId %in% c('W410922137FT1CJXSGTR', 'W431322207B116B4XGWE'), 
+                                      '54167', TrafficViolationCjisOffenseCode)) %>%
+  mutate(TrafficViolationType =
+           if_else(DojRecordId %in% c('W410922137FT1CJXSGTR', 'W431322207B116B4XGWE'), 
+                   "1", TrafficViolationType)) %>% 
+#window tint  
+  mutate(TrafficViolationCjisOffenseCode = 
+           if_else(DojRecordId %in% c('W431322288EPOTB3NDHQ', 'W431422139BTA88ZE9YS'), 
+                                      '54015', TrafficViolationCjisOffenseCode)) %>%
+  mutate(TrafficViolationType =
+           if_else(DojRecordId %in% c('W431322288EPOTB3NDHQ', 'W431422139BTA88ZE9YS'), 
+                   "2", TrafficViolationType)) %>% 
+    
+#yes CVC violation but unclear, set type and violation to NA
+#window tint  
+  mutate(TrafficViolationCjisOffenseCode = 
+           if_else(DojRecordId %in% c('W392422346EPOFYGE2SN', 'W392422346YADKZ4CHLP', 
+                                      'W3924223462O5DSWD798', 'W431322093M8XK8LISI9', 
+                                      'W4313221420B1H1LXOMZ', 'W431322092TQVAGQ0ASK'), 
+                                      NA, TrafficViolationCjisOffenseCode)) %>%
+  mutate(TrafficViolationType =
+           if_else(DojRecordId %in% c('W392422346EPOFYGE2SN', 'W392422346YADKZ4CHLP', 
+                                      'W3924223462O5DSWD798', 'W431322093M8XK8LISI9', 
+                                      'W4313221420B1H1LXOMZ'), 
+                   NA, TrafficViolationType)) %>% 
+  mutate(TrafficViolationType = if_else(DojRecordId == 'W431322092TQVAGQ0ASK', "2", 
+                                        TrafficViolationType)) %>%
+
+#deal with each of below separately
+  mutate(TrafficViolationCjisOffenseCode = 
+           if_else(DojRecordId == 'S194222261RLUUZRH1TQ', '54306', TrafficViolationCjisOffenseCode)) %>%
+  mutate(TrafficViolationType =
+           if_else(DojRecordId == 'S194222261RLUUZRH1TQ', "1", TrafficViolationType)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = 
+           if_else(DojRecordId == 'W430722249H0Y7BFXI3Q', '54389', TrafficViolationCjisOffenseCode)) %>%
+  mutate(TrafficViolationType =
+           if_else(DojRecordId == 'W430722249H0Y7BFXI3Q', "1", TrafficViolationType)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = 
+           if_else(DojRecordId == 'W431322125KYTUN77JS4', '54014', TrafficViolationCjisOffenseCode)) %>%
+  mutate(TrafficViolationType =
+           if_else(DojRecordId == 'W431322125KYTUN77JS4', "2", TrafficViolationType)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = 
+           if_else(DojRecordId == 'W431322125QP4N28PYYK', '54141', TrafficViolationCjisOffenseCode)) %>%
+  mutate(TrafficViolationType =
+           if_else(DojRecordId == 'W431322125QP4N28PYYK', "2", TrafficViolationType)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = 
+           if_else(DojRecordId == 'W431322126RSWWELRR1F', '54083', TrafficViolationCjisOffenseCode)) %>%
+  mutate(TrafficViolationType =
+           if_else(DojRecordId == 'W431322126RSWWELRR1F', "3", TrafficViolationType)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = 
+           if_else(DojRecordId == 'W431322244GZ8HXZX4JP', '54161', TrafficViolationCjisOffenseCode)) %>%
+  mutate(TrafficViolationType =
+           if_else(DojRecordId == 'W431322244GZ8HXZX4JP', "1", TrafficViolationType)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = 
+           if_else(DojRecordId == 'W431322267ELKO3NDMNF', '54185', TrafficViolationCjisOffenseCode)) %>%
+  mutate(TrafficViolationType =
+           if_else(DojRecordId == 'W431322267ELKO3NDMNF', "1", TrafficViolationType)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = 
+           if_else(DojRecordId == 'W431322277E9S68I2B08', '66985', TrafficViolationCjisOffenseCode)) %>%
+  mutate(TrafficViolationType =
+           if_else(DojRecordId == 'W431322277E9S68I2B08', "3", TrafficViolationType)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = 
+           if_else(DojRecordId == 'W431322288817RP7EXNR', '54299', TrafficViolationCjisOffenseCode)) %>%
+  mutate(TrafficViolationType =
+           if_else(DojRecordId == 'W431322288817RP7EXNR', "1", TrafficViolationType)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = 
+           if_else(DojRecordId == 'W480622111IFCLQ4LRMG', '54162', TrafficViolationCjisOffenseCode)) %>%
+  mutate(TrafficViolationType =
+           if_else(DojRecordId == 'W480622111IFCLQ4LRMG', "1", TrafficViolationType)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = 
+           if_else(DojRecordId == 'W431322105K6R8768CVD', '42127', TrafficViolationCjisOffenseCode)) %>%
+  mutate(TrafficViolationType =
+           if_else(DojRecordId == 'W431322105K6R8768CVD', "3", TrafficViolationType)) %>% 
+  mutate(ReasonForStopNarrative =
+           if_else(DojRecordId == 'W431322105K6R8768CVD', "drive wo license", ReasonForStopNarrative)) %>% 
+  
+  
+#  set Reason for Stop and Type to NA for others 
+  mutate(ReasonForStop = if_else(TrafficViolationCjisOffenseCode == "3" &
+                                   !(is.na(TrafficViolationCjisOffenseCode)), 
+                                 NA, ReasonForStop)) %>%
+  mutate(TrafficViolationType = if_else(TrafficViolationCjisOffenseCode == "3" 
+                                        & !(is.na(TrafficViolationCjisOffenseCode)), NA,
+                                        TrafficViolationType)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = if_else(TrafficViolationCjisOffenseCode == "3" 
+                                                   & !(is.na(TrafficViolationCjisOffenseCode)), NA,
+                                                   TrafficViolationCjisOffenseCode)) %>%
+   
+  #finally create multiple new columns for each column with multiple comma separated values
+  separate(col=PerceivedRaceOrEthnicity, into=paste0("PerceivedRace", 1:7), sep=",", fill="right") %>% 
+  separate(col=ContrabandOrEvidence, into=paste0("ContrabandOrEvidence", 1:10), sep=",", fill="right") %>%
+  separate(col=ResultsOfStop, into=paste0("ResultsOfStop", 1:7), sep=",", fill="right") %>% 
+  separate(col=WarningCjisOffenseCodeS, into=paste0("WarningCjisOffenseCodeS", 1:5), sep=",", fill="right") %>% 
+  separate(col=CitationCjisOffenseCodeS, into=paste0("CitationCjisOffenseCodeS", 1:5), sep=",", fill="right") %>%
+  separate(col=InFieldCiteAndReleaseCjisOffenseCodeS, into=paste0("InFieldCiteAndReleaseCjisOffenseCodeS", 
+                                                                  1:5), sep=",", fill="right") %>%
+# Deal with ActionsTaken, which has comma-separated values and number plus Y/N/NA
+  mutate(ActionsTaken = str_remove_all(ActionsTaken, '"')) %>% 
+  separate(col = ActionsTaken, into = pairs, sep = ",", fill = "right") %>%
+  
+# replace any values of "NA", "" or "N" with NA again
+  mutate(across(everything(), ~ ifelse(. %in% na_strings, NA, .))) %>%
+
+  #where needed, add leading zeroes to other CJIS codes these and set 1-character values to missing
+  mutate(WarningCjisOffenseCodeS1 = if_else(nchar(WarningCjisOffenseCodeS1)==4, 
+                                                   paste0("0", WarningCjisOffenseCodeS1), 
+                                                   WarningCjisOffenseCodeS1)) %>%  
+  mutate(WarningCjisOffenseCodeS1 = if_else(nchar(WarningCjisOffenseCodeS1)==1, NA, 
+                                                   WarningCjisOffenseCodeS1)) %>%  
+  mutate(CitationCjisOffenseCodeS1 = if_else(nchar(CitationCjisOffenseCodeS1)==4, 
+                                                   paste0("0", CitationCjisOffenseCodeS1), 
+                                                   CitationCjisOffenseCodeS1)) %>% 
+    mutate(CitationCjisOffenseCodeS1 = if_else(nchar(CitationCjisOffenseCodeS1)==1, NA, 
+                                                   CitationCjisOffenseCodeS1)) %>% 
+  mutate(InFieldCiteAndReleaseCjisOffenseCodeS1 = if_else(nchar(InFieldCiteAndReleaseCjisOffenseCodeS1)==4, 
+                                                   paste0("0", InFieldCiteAndReleaseCjisOffenseCodeS1), 
+                                                   InFieldCiteAndReleaseCjisOffenseCodeS1)) %>%  
+  mutate(InFieldCiteAndReleaseCjisOffenseCodeS1 = if_else(nchar(InFieldCiteAndReleaseCjisOffenseCodeS1)==1, NA, 
+                                                   InFieldCiteAndReleaseCjisOffenseCodeS1)) %>%  
+  mutate(InFieldCiteAndReleaseCjisOffenseCodeS2 = if_else(nchar(InFieldCiteAndReleaseCjisOffenseCodeS2)==4, 
+                                                   paste0("0", InFieldCiteAndReleaseCjisOffenseCodeS2), 
+                                                   InFieldCiteAndReleaseCjisOffenseCodeS2)) %>%
+    as_tibble()
+
+```
+
+```{r, stop22}
+r22stop <- readRDS("../Data/r22stop.rds")
+
+#cleanup column names
+r22stop.1 <- r22stop %>%
+  clean_names(., "big_camel")
+print(colnames(r22stop.1))
+
+#checked values and these all are fine - don't need cleaning
+
+dt_r22stop <- data.table(r22stop.1)
+
+```
+
+```{r, merge22}
+r22all<- merge(r22l_clean, dt_r22stop, 
+               by = 'DojRecordId')
+
+saveRDS(r22all, '../Data/r22all.rds')
+```
+
+```{r, CVC22}
+xwalk <- read_xlsx(path='E:/Process_RIPA/Data/RIPA-StopDataCollectionSystem-look-up-table-2023.v2_mode.xlsx',
+                    sheet='Offense Table', guess_max = 1600) %>% 
+  clean_names(., "big_camel") %>% 
+  select(c('OffenseCode', 'OffenseStatute', 'OffenseTypeOfStatuteCd', 'Mode', 'StatuteLiteral25')) %>% 
+  distinct(OffenseCode, .keep_all = TRUE)
+
+
+r22all <- readRDS("../Data/r22all.rds")
+
+dt_r22all <- data.table(r22all)
+dt_xwalk <- data.table(xwalk)
+r22cvc<- merge(dt_r22all, dt_xwalk, 
+               by.x = 'TrafficViolationCjisOffenseCode', by.y = 'OffenseCode', 
+               all.x = TRUE) %>% 
+  arrange(Mode, TrafficViolationCjisOffenseCode) %>% 
+  mutate(Mode = na_if(Mode, "NA")) %>% 
+  as_tibble()
+  
+```
+
+
+
+```{r, restrict23}
+r23names<-as.data.frame(colnames(r23))
+#write.csv(r23names,'../Data/r23names.csv')
+#Identical to 2018
+
+#isolate stop level variables
+ stopcol<-c(1, 3, 5:11, 14, 15)
+ r23stop<-r23[,..stopcol]
+ saveRDS(r23stop, '../Data/r23stop.rds')
+
+#isolate person level variables - these start in column 18 and repeat every 28
+#these are vars to keep in general - create one vector, then multiply each by 28 93 times
+one_pers<-c(18:20, 23, 27:30, 35, 40:44)
+repetitions<-99
+perscol<-numeric(length(one_pers) * repetitions)
+
+for (i in 1:repetitions) {
+  start_index<-(i-1)*length(one_pers) + 1
+  end_index<- i*length(one_pers)
+  perscol[start_index:end_index] <- one_pers + (i-1)*28
+}
+#don't forget to include unique id - column 1
+perscol<-c(1, perscol)
+ #print(perscol)
+
+r23pers<-r23[,..perscol]
+
+#prep for pivot longer by assigning suffixes
+#cols now have different numbers so re-examine
+pers23names<-as.data.frame(colnames(r23pers))
+#write.csv(pers23names,'../Data/pers23names.csv')
+
+#first remove the 1_4 from Perceived Gender columns
+names(r23pers)[names(r23pers) == "Perceived Gender 1-4"] <- "Perceived Gender"
+
+#give a numeric suffix to each set of person level variables, except DOJ ID
+existing_cols<-colnames(r23pers)
+new_cols<-existing_cols
+cols_to_suffix<-existing_cols[-1]
+#create suffixes and apply them
+n_fields<-length(cols_to_suffix)/repetitions
+suffixes<-rep(1:repetitions, each=n_fields)
+new_cols[-1]<-paste(cols_to_suffix, suffixes, sep="_")
+colnames(r23pers)<-new_cols
+
+print(colnames(r23pers))
+
+#before pivot, cleanup column names
+r23pers.1 <- r23pers %>%
+  clean_names(., "big_camel")
+#print(colnames(r23pers.1))
+
+saveRDS(r23pers.1, '../Data/r23pers_1.rds')
+```
+
+```{r, pivotlonger23}
+r23pers.1 <- readRDS("E:/Process_RIPA/Data/r23pers_1.rds")
+
+dt_r23pers <- data.table(r23pers.1)
+
+#first just remove person1 and 2 from the file and pivot_longer with them 
+#then delete all records with <3 people and pivot_longer separately
+#finally, stack the files
+#this needs to be done before pivot longer due to memory/size issues
+dt23_p2 <- dt_r23pers %>%
+  select(1:29) %>%
+     mutate(across(-DojRecordId, as.character)) %>% #coerce all columns to character
+   pivot_longer(
+     cols = -DojRecordId,
+     names_to=c("variable", "group"),
+     names_pattern="([a-zA-Z]+)([0-9]+)"
+   ) %>%
+   pivot_wider(
+     names_from = variable,
+     values_from = value)%>%
+  filter(if_any(-c(DojRecordId, group), ~ !is.na(.) & . !="")) # delete rows with NA or missing values
+
+dt23_3plus <- dt_r23pers %>%
+  filter(!is.na(PersonNumber3)) %>%
+  select(1, 30:729) %>%
+       mutate(across(-DojRecordId, as.character)) %>% #coerce all columns to character
+   pivot_longer(
+     cols = -DojRecordId,
+     names_to=c("variable", "group"),
+     names_pattern="([a-zA-Z]+)([0-9]+)"
+   ) %>%
+   pivot_wider(
+     names_from = variable,
+     values_from = value) %>%
+  filter(if_any(-c(DojRecordId, group), ~ !is.na(.) & . !="")) # delete rows with NA or missing values
+
+r23long_clean <- rbind(dt23_p2, dt23_3plus) %>%
+  arrange(DojRecordId) %>%
+  as_tibble()
+
+# save this and move onto dealing with columns that have multiple entries
+ saveRDS(r23long_clean, '../Data/r23long_clean.rds')
+```
+
+```{r, clean23}
+r23long_clean <- readRDS("E:/Process_RIPA/Data/r23long_clean.rds")
+#str(r23long_clean)
+
+ unique(r23long_clean$PerceivedGender) #good
+ unique(r23long_clean$PerceivedAge) #One N to set to NA, otherwise good
+ unique(r23long_clean$ReasonForStop)  #One "10" to set to "2" and one N to set to NA
+
+ unique(r23long_clean$TrafficViolationType) 
+  # one "" to be set to missing
+  # several with non-speeding narratives to be investigated
+  # all others that are incorrect are speeding (add to 'moving')
+
+ unique(r23long_clean$TrafficViolationCjisOffenseCode)
+#add non-5 digit numbers to lo_dig and fix
+# look<-dt_r23l[TrafficViolationCjisOffenseCode %in% lo_dig] #those with "1" are already taken care of above
+# look2<-r23l_clean[r23l_clean$TrafficViolationCjisOffenseCode %in% lo_dig,]
+ 
+#Deal with 3's
+# S191223255ZBNJOK7QZ1 - lighting Type (2) correct but code = 66967
+# S192523279CS1IAI9NZO - wrong side of road Type (1) correct but code = 54169
+# S3701232236N05TN3VFV - no stop at red light. Type (1) correct but code = 54373
+# S370223271TCVDWYLVHN - broken taillight. Type (2) correct but code = 66425
+# S371124052RIIX557AJA - 23152 [this is DUI]. Type (1) is correct but code = 42104. Also make this citation code. 
+# W0711231007Q08I1R5SI - running light. Type (1) is correct but code = 54153
+# W120023145CC4DST07HF - plate light. Type (2) is correct but code = 54110
+# W310123261ZQ20S1N7R8 - illegal u-turn. Type (1) is correct but code = 54115
+# W412023215KSJC8PKL5B - illegal u-turn Type (1) is correct but code = 54115
+# W580123257PJMK8PHHP8 - bike on sidewalk Type (1) correct, but code = 65002 b/c local ordinance
+# W3711230754HA5O2MVEG - child carseat Type (2) is correct, but code = 54166
+# W411623207MDHYXIHGQB - window tint Type (2) is correct but code = 54015
+
+# 1 plate wrong
+ # W480623037JV7MBTK6BT - Type (2) is correct but code = 54645
+ # W010723342NYDBHNEOZ4 - Type (2) is correct, but code = 54645
+ # W480623163A544COEOLY (x2 ppl) - Type (2) is correct but code = 54645
+
+#both plates wrong
+ # Type (2) is correct but code = 54644
+    #W480623093U1XCR4HJIA, W480623107P2PS4K9YZ8, W480623128YRQHQXXB81, W4806231357NFJ2TNNU9 (x3 ppl), W48062315034DRSVBH0N, W480623156CSWFFCEKLS
+# W431423082RA3MQQE4W6 - 5200 CVC Type is WRONG - fix to 2. Code = 54644
+
+# exp reg, fix type
+#  Type is WRONG - fix to 3. Code = 54099
+    #W4806230934QQV9RCBHA, W480623097XN10QZQNDU, W4806231005VUKHW7C9B, W4806231079BD6X6O4G5, W480623107N4UXAJGZQS, W480623226AFMEB5VQQE, W480623018JXI8R1Y2KP
+
+# exp reg,  type ok
+ # W240524047T6A2W9L83E  Type (3) is correct but code = 54099
+# W310123031XIIIU2GI0W -  Type (3) is correct but code = 54099
+#  Type (3) is correct, but code = 54099
+    #W480623011DIYVDN4U4Y, W48062302365LS8BLWMK, W480623037BEW6T403VJ, W480623052DEV3YS5N6Z, W4806230583YADRHCM7M, W480623072SZJIJ46R2A, W480623079AAP7PWL92P, W4806230862DNT64NV0Z, W480623086JWFXPFZV21, W480623086SANQR0M9KB, W480623107L462KIMRB3, W480623135SO63KXOWAW
+
+
+#columns with multiple entries appear to be: ActionsTaken & Results of Stop - what else?
+ unique(r23long_clean$ActionsTaken) # These take the form "\"12,NA\"" with a # and Y, N or NA. 
+  #Repeat 28 times  
+ unique(r23long_clean$PerceivedRaceOrEthnicity) #repeat 7
+ unique(r23long_clean$ContrabandOrEvidence) #repeat 9
+ unique(r23long_clean$ResultsOfStop) #repeat 10
+ unique(r23long_clean$WarningCjisOffenseCodeS) #repeat 5
+ unique(r23long_clean$CitationCjisOffenseCodeS) #repeat 5
+ unique(r23long_clean$InFieldCiteAndReleaseCjisOffenseCodeS) #repeat 5
+
+#to use dtplyr do lazy_dt(df) as first step before %>%  and then last step in pipes is as_tibble
+
+#first set NA values
+#then deal with one-off non-conforming values
+#this includes speed-related moving violations with narrative in place of type
+#this CJIS codes that are too short, includes adding leading 0s to 4 digit offense codes
+#finally, separate out columns with multiple comma separated codes
+na_strings<-c("", "N", "NA", "N/A") #list of NA values
+moving <- c(">65 mph","RADAR", "LIDAR", "lidar", "PATROL CAR PACE", "VEHICLE PACE", 
+            "LDIAR", "vehicle pace")
+lo_dig<-c("9157", "1005", "4052", "9198", "9176", "8042", "4042", "4037", "4072",
+          "4061", "4033", "3052", "2052", "4026", "4055", "9151", "4049", "4013", 
+          "4043", "2053", "4048", "9005", "4066", "4017", "4008", "3", "9208", 
+          "4032", "9155", "1004", "9150", "9200", "8008", "4053", "4050", "8030", 
+          "9185", "1", "4021", "4027")
+plate2<-c('W480623093U1XCR4HJIA', 'W480623107P2PS4K9YZ8', 'W480623128YRQHQXXB81', 'W4806231357NFJ2TNNU9', 'W48062315034DRSVBH0N', 'W480623156CSWFFCEKLS', 'W431423082RA3MQQE4W6')
+plate1<-c('W480623037JV7MBTK6BT', 'W010723342NYDBHNEOZ4', 'W480623163A544COEOLY')
+reg_typefix<-c('W4806230934QQV9RCBHA', 'W480623097XN10QZQNDU', 'W4806231005VUKHW7C9B', 'W4806231079BD6X6O4G5', 'W480623107N4UXAJGZQS', 'W480623226AFMEB5VQQE', 'W480623018JXI8R1Y2KP')
+reg_typeok<-c('W240524047T6A2W9L83E', 'W310123031XIIIU2GI0W', 'W480623011DIYVDN4U4Y', 'W48062302365LS8BLWMK', 'W480623037BEW6T403VJ', 'W480623052DEV3YS5N6Z', 'W4806230583YADRHCM7M', 'W480623072SZJIJ46R2A', 'W480623079AAP7PWL92P', 'W4806230862DNT64NV0Z', 'W480623086JWFXPFZV21', 'W480623086SANQR0M9KB', 'W480623107L462KIMRB3', 'W480623135SO63KXOWAW')
+
+
+pairs <- unlist(lapply(1:13, function(i) c(paste0("ActionsTaken", i, "_code"), paste0("ActionsTaken", i, "_YN"))))
+          
+
+dt_r23l <- data.table(r23long_clean)
+r23l_clean <- lazy_dt(dt_r23l) %>% 
+#first replace any values of "" or "N" with NA
+  mutate(across(everything(), ~ ifelse(. %in% na_strings, NA, .))) %>%
+  
+#deal with one errant value of 10 for reason for stop - this is a mental health call
+  mutate(ReasonForStop=replace(ReasonForStop, ReasonForStop == "10", "2"))  %>% 
+
+#TrafficViolationType has some non-conforming free-text responses in it 
+#this one is not all correct just to shift - deal with individually where needed
+  mutate(PersonNumber = if_else((DojRecordId == "S370024055HVVF6N8MA4" & group == "2"), "2", PersonNumber)) %>% 
+  mutate(PerceivedRaceOrEthnicity = if_else((DojRecordId == "S370024055HVVF6N8MA4" & group == "2"), "3",
+                                            PerceivedRaceOrEthnicity)) %>% 
+  mutate(PerceivedGender = if_else((DojRecordId == "S370024055HVVF6N8MA4" & group == "2"), NA, PerceivedGender)) %>%   mutate(ReasonForStop = if_else((DojRecordId == "S370024055HVVF6N8MA4" & group == "2"), "2", ReasonForStop)) %>%  
+  mutate(ReasonForStopNarrative = if_else((DojRecordId == "S370024055HVVF6N8MA4" & group == "2"), 
+                                          "reasonable suspicious behavior", ReasonForStopNarrative)) %>%  
+  mutate(TrafficViolationType = if_else((DojRecordId == "S370024055HVVF6N8MA4" & group == "2"), NA, 
+                                        TrafficViolationType)) %>%
+  mutate(ActionsTaken = if_else((DojRecordId == "S370024055HVVF6N8MA4" & group == "2"), 
+                                          "\"1,NA\",\"4,NA\",\"5,NA\",\"6,NA\",\"16,NA\",\"18,NA\",\"20,NA\"",
+                                ActionsTaken)) %>%   
+  mutate(ContrabandOrEvidence = if_else(DojRecordId == "S370024055HVVF6N8MA4", "1", ContrabandOrEvidence)) %>%  
+  mutate(ResultsOfStop = if_else((DojRecordId == "S370024055HVVF6N8MA4" & group == "1"), "6", ResultsOfStop)) %>%
+  mutate(ResultsOfStop = if_else((DojRecordId == "S370024055HVVF6N8MA4" & group == "2"), "9", ResultsOfStop)) %>%
+  mutate(WarningCjisOffenseCodeS = if_else(DojRecordId == "S370024055HVVF6N8MA4", NA, WarningCjisOffenseCodeS)) %>% 
+
+  mutate(TrafficViolationType = if_else((DojRecordId == "W301923339FJCL74FJVV" & group == "2"), NA,
+                                        TrafficViolationType)) %>%
+  mutate(ContrabandOrEvidence = if_else((DojRecordId == "W301923339FJCL74FJVV" & group == "2"), "1",
+                                        ContrabandOrEvidence)) %>%  
+  mutate(ResultsOfStop = if_else((DojRecordId == "W301923339FJCL74FJVV" & group == "2"), "1", ResultsOfStop)) %>%   
+  mutate(WarningCjisOffenseCodeS = if_else((DojRecordId == "W301923339FJCL74FJVV" & group == "2"), NA,
+                                           WarningCjisOffenseCodeS)) %>% 
+  
+  mutate(ReasonForStopNarrative = if_else((DojRecordId == "W480623298F0VP8DNRPF" & group == "1"), 
+                                          "HOTEL MANAGER WANTED SUBJECT TRESPASSED FROM PROPERTY.",
+                                          ReasonForStopNarrative)) %>%
+  mutate(TrafficViolationType = if_else((DojRecordId == "W480623298F0VP8DNRPF" & group == "1"), NA,
+                                        TrafficViolationType)) %>%
+  mutate(ContrabandOrEvidence = if_else((DojRecordId == "W480623298F0VP8DNRPF" & group == "1"), "1",
+                                        ContrabandOrEvidence)) %>%  
+  mutate(ResultsOfStop = if_else((DojRecordId == "W480623298F0VP8DNRPF" & group == "1"), "5", ResultsOfStop)) %>%   
+  mutate(WarningCjisOffenseCodeS = if_else((DojRecordId == "W480623298F0VP8DNRPF" & group == "1"), NA,
+                                           WarningCjisOffenseCodeS)) %>%  
+  
+  mutate(TrafficViolationCjisOffenseCode = if_else(TrafficViolationType %in% moving, 
+                                                   "54303", TrafficViolationCjisOffenseCode)) %>%
+  mutate(ContrabandOrEvidence= if_else(TrafficViolationType %in% moving, ResultsOfStop, ContrabandOrEvidence)) %>%
+  mutate(ResultsOfStop=if_else(TrafficViolationType %in% moving, WarningCjisOffenseCodeS, ResultsOfStop)) %>%
+  mutate(WarningCjisOffenseCodeS=if_else(TrafficViolationType %in% moving, CitationCjisOffenseCodeS,
+                                         WarningCjisOffenseCodeS)) %>% 
+  mutate(CitationCjisOffenseCodeS=if_else(TrafficViolationType %in% moving, InFieldCiteAndReleaseCjisOffenseCodeS,
+                                         CitationCjisOffenseCodeS)) %>% 
+  mutate(InFieldCiteAndReleaseCjisOffenseCodeS=if_else(TrafficViolationType %in% moving, NA,
+                                         InFieldCiteAndReleaseCjisOffenseCodeS)) %>% 
+  mutate(TrafficViolationType = if_else(TrafficViolationType %in% moving, "1", TrafficViolationType)) %>%
+
+  #those with four digits need leading 0 and are correct - fix below
+  mutate(TrafficViolationCjisOffenseCode = if_else(nchar(TrafficViolationCjisOffenseCode)==4 
+                                                   & !(is.na(TrafficViolationCjisOffenseCode)), 
+                                                   paste0("0", TrafficViolationCjisOffenseCode), 
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+  #those with a 3 need to be addressed
+  
+  #start with 1 plate wrong
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId %in% plate1, "54645", TrafficViolationCjisOffenseCode)) %>%
+  #now both plates wrong
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId %in% plate2, "54644", TrafficViolationCjisOffenseCode)) %>%
+  mutate(TrafficViolationType = if_else(DojRecordId %in% plate2, "2", TrafficViolationType)) %>%
+  #now exp reg, fix type
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId %in% reg_typefix, "54099", TrafficViolationCjisOffenseCode)) %>%
+  mutate(TrafficViolationType = if_else(DojRecordId %in% reg_typefix, "3", TrafficViolationType)) %>%
+  #and now exp reg,  type ok
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId %in% reg_typeok, "54099", TrafficViolationCjisOffenseCode)) %>% 
+
+  #finally deal with one-offs
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'S191223255ZBNJOK7QZ1', "66967",
+                                                   TrafficViolationCjisOffenseCode)) %>%  
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'S192523279CS1IAI9NZO', "54169",
+                                                   TrafficViolationCjisOffenseCode)) %>%   
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'S3701232236N05TN3VFV', "54373",
+                                                   TrafficViolationCjisOffenseCode)) %>%   
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'S370223271TCVDWYLVHN', "66425",
+                                                   TrafficViolationCjisOffenseCode)) %>%   
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'S371124052RIIX557AJA', "42104",
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+  mutate(CitationCjisOffenseCodeS = if_else(DojRecordId == 'S371124052RIIX557AJA', "42104",
+                                                   CitationCjisOffenseCodeS)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'W0711231007Q08I1R5SI', "54153",
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'W120023145CC4DST07HF', "54110",
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'W310123261ZQ20S1N7R8', "54115",
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'W412023215KSJC8PKL5B', "54115",
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'W580123257PJMK8PHHP8', "65002",
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'W3711230754HA5O2MVEG', "54166",
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = if_else(DojRecordId == 'W411623207MDHYXIHGQB', "54015",
+                                                   TrafficViolationCjisOffenseCode)) %>% 
+  
+  #set Reason for Stop and Type to NA for all but traffic violations from above
+  mutate(ReasonForStop = if_else(TrafficViolationCjisOffenseCode == "3" & 
+                                   !(is.na(TrafficViolationCjisOffenseCode)), NA, ReasonForStop)) %>%
+  mutate(TrafficViolationType = if_else(TrafficViolationCjisOffenseCode == "3" & 
+                                   !(is.na(TrafficViolationCjisOffenseCode)), NA, TrafficViolationType)) %>% 
+  mutate(TrafficViolationCjisOffenseCode = if_else(TrafficViolationCjisOffenseCode == "3" & 
+                                   !(is.na(TrafficViolationCjisOffenseCode)), NA, TrafficViolationCjisOffenseCode)) %>%
+  
+  #finally create multiple new columns for each column with multiple comma separated values
+  separate(col=PerceivedRaceOrEthnicity, into=paste0("PerceivedRace", 1:7), sep=",", fill="right") %>%
+  separate(col=ContrabandOrEvidence, into=paste0("ContrabandOrEvidence", 1:9), sep=",", fill="right") %>%
+  separate(col=ResultsOfStop, into=paste0("ResultsOfStop", 1:10), sep=",", fill="right") %>% 
+  separate(col=WarningCjisOffenseCodeS, into=paste0("WarningCjisOffenseCodeS", 1:5), sep=",", fill="right") %>% 
+  separate(col=CitationCjisOffenseCodeS, into=paste0("CitationCjisOffenseCodeS", 1:5), sep=",", fill="right") %>%
+  separate(col=InFieldCiteAndReleaseCjisOffenseCodeS, into=paste0("InFieldCiteAndReleaseCjisOffenseCodeS", 
+                                                                  1:5), sep=",", fill="right") %>%
+  
+# Deal with ActionsTaken, which has comma-separated values and number plus Y/N/NA
+  mutate(ActionsTaken = str_remove_all(ActionsTaken, '"')) %>% 
+  separate(col = ActionsTaken, into = pairs, sep = ",", fill = "right") %>%
+  
+
+  # replace any values of "NA", "" or "N" with NA again
+  mutate(across(everything(), ~ ifelse(. %in% na_strings, NA, .))) %>%
+  
+  #where needed, add leading zeroes to these CJIS codes and set 1-character values to missing
+  mutate(WarningCjisOffenseCodeS1 = if_else(nchar(WarningCjisOffenseCodeS1)==4, 
+                                                   paste0("0", WarningCjisOffenseCodeS1), 
+                                                   WarningCjisOffenseCodeS1)) %>%  
+  mutate(WarningCjisOffenseCodeS1 = if_else(nchar(WarningCjisOffenseCodeS1)==1, NA, 
+                                                   WarningCjisOffenseCodeS1)) %>%  
+  mutate(CitationCjisOffenseCodeS1 = if_else(nchar(CitationCjisOffenseCodeS1)==4, 
+                                                   paste0("0", CitationCjisOffenseCodeS1), 
+                                                   CitationCjisOffenseCodeS1)) %>%
+  mutate(CitationCjisOffenseCodeS1 = if_else(nchar(CitationCjisOffenseCodeS1)==1, NA, 
+                                                   CitationCjisOffenseCodeS1)) %>%
+  mutate(CitationCjisOffenseCodeS2 = if_else(nchar(CitationCjisOffenseCodeS2)==4, 
+                                                   paste0("0", CitationCjisOffenseCodeS2), 
+                                                   CitationCjisOffenseCodeS2)) %>%
+  mutate(InFieldCiteAndReleaseCjisOffenseCodeS1 = if_else(nchar(InFieldCiteAndReleaseCjisOffenseCodeS1)==4, 
+                                                   paste0("0", InFieldCiteAndReleaseCjisOffenseCodeS1), 
+                                                   InFieldCiteAndReleaseCjisOffenseCodeS1)) %>%  
+  mutate(InFieldCiteAndReleaseCjisOffenseCodeS1 = if_else(nchar(InFieldCiteAndReleaseCjisOffenseCodeS1)==1, NA, 
+                                                   InFieldCiteAndReleaseCjisOffenseCodeS1)) %>%  
+    as_tibble()
+
+```
+
+```{r, cstop23}
+r23stop <- readRDS("../Data/r23stop.rds")
+
+#cleanup column names
+r23stop.1 <- r23stop %>%
+  clean_names(., "big_camel")
+print(colnames(r23stop.1))
+
+#checked values and these all are fine - don't need cleaning
+
+dt_r23stop <- data.table(r23stop.1)
+
+```
+
+```{r, merge23}
+r23all<- merge(r23l_clean, dt_r23stop, 
+               by = 'DojRecordId')
+
+saveRDS(r23all, '../Data/r23all.rds')
+```
+
+```{r, CVC23}
+xwalk <- read_xlsx(path='E:/Process_RIPA/Data/RIPA-StopDataCollectionSystem-look-up-table-2023.v2_mode.xlsx',
+                    sheet='Offense Table', guess_max = 1600) %>% 
+  clean_names(., "big_camel") %>% 
+  select(c('OffenseCode', 'OffenseStatute', 'OffenseTypeOfStatuteCd', 'Mode', 'StatuteLiteral25')) %>% 
+  distinct(OffenseCode, .keep_all = TRUE)
+
+
+r23all <- readRDS("../Data/r23all.rds")
+
+dt_r23all <- data.table(r23all)
+dt_xwalk <- data.table(xwalk)
+r23cvc<- merge(dt_r23all, dt_xwalk, 
+               by.x = 'TrafficViolationCjisOffenseCode', by.y = 'OffenseCode', 
+               all.x = TRUE) %>% 
+  arrange(Mode, TrafficViolationCjisOffenseCode) %>% 
+  mutate(Mode = na_if(Mode, "NA")) %>% 
+  as_tibble()
+
+  
+```
+
+
+
+```{r}
+#saveRDS(r18cvc, '../Data/r18cvc.rds')
+#saveRDS(r19cvc, '../Data/r19cvc.rds')
+#saveRDS(r20cvc, '../Data/r20cvc.rds')
+#saveRDS(r21cvc, '../Data/r21cvc.rds')
+#saveRDS(r22cvc, '../Data/r22cvc.rds')
+#saveRDS(r23cvc, '../Data/r23cvc.rds')
+
+# r18cvc <- readRDS("../Data/r18cvc.rds")
+# r19cvc <- readRDS("../Data/r19cvc.rds")
+# r20cvc <- readRDS("../Data/r20cvc.rds")
+# r21cvc <- readRDS("../Data/r21cvc.rds")
+# r22cvc <- readRDS("../Data/r22cvc.rds")
+# r23cvc <- readRDS("../Data/r23cvc.rds")
+
+
+#create and save an all-year file with all modes 
+allyr_allmodes <- dplyr::bind_rows(r18cvc, r19cvc, r20cvc, r21cvc, r22cvc, r23cvc) %>% 
+  distinct(DojRecordId, .keep_all = TRUE)
+saveRDS(allyr_allmodes, '../Data/allyr_allmodes.rds')
+
+allyr_allmodes <- readRDS('../Data/allyr_allmodes.rds') 
+#descriptive stats
+#total n = 20181958
+#traffic only
+allyr_trafficonly <- allyr_allmodes %>% filter(ReasonForStop==1) #17469278 (86.6%)
+
+table(allyr_trafficonly$TrafficViolationType)
+#1=moving: 11987652  (68.6%)
+#2=equip: 2797593  (16.0%)
+#3=non-moving: 2683960 (15.4%)
+
+table(allyr_trafficonly$ResultsOfStop1)
+#853614 no action (4.9%), 5468640 warning (31.3%), 10545441 citation (60.4%)
+#remaining 601583 (3.4%) are arrests, field interviews, psychiatric holds, etc
+
+unique(allyr_allmodes$AgencyOri)
+#bring in file from DOJ: https://data-openjustice.doj.ca.gov/sites/default/files/dataset/2023-06/UseofForce_ORI-Agency_Names_2022f.csv. Note: some ORI's were in RIPA file and not here - I added
+# I have added type: 1=CHP, 2=Sheriff, 3=Municipal PD, 4=College/Univ. PD, 5 = Other
+agency_type <- read.csv('E:/Process_RIPA/Data/UseofForce_ORI-Agency_Names_2022f_withType.csv')%>% 
+  rename("AgencyOri" = "ORI", 
+         "AgencyName" = "AGENCY_NAME", 
+         "AgencyType" = "Type")
+
+dt_all <- data.table(allyr_allmodes)
+dt_agency_type <- data.table(agency_type)
+process_all <- lazy_dt(dt_all) %>% 
+  left_join(dt_agency_type, by="AgencyOri") %>% 
+  as_tibble()
+
+#look at agency type breakdown
+all_traffic <-process_all  %>% filter(ReasonForStop==1) #17469278
+table(all_traffic$AgencyType, useNA = 'ifany') 
+#1=CHP: 10178599 (58.3%)
+#2=Sheriff: 2377139 (13.6%)
+#3=Municipal PD: 4822338 (27.6%)
+#4=College/Univ. PD: 51220 (0.3%)
+#5 = Other: 39982 (0.2%)
+
+#look at the above breakdowns for just 2022 and 2023 when all agencies report
+all_traffic_2223 <-process_all  %>% filter(ReasonForStop==1) %>% 
+  filter(substr(DateOfStop, 7, 10) %in% c('2022', '2023')) #7496821
+
+table(all_traffic_2223$TrafficViolationType)
+#1=moving: 5012514   (66.9%)
+#2=equip: 1420462   (18.9%)
+#3=non-moving: 1063814  (14.2%)
+
+table(all_traffic_2223$ResultsOfStop1)
+#340269 no action (4.5%), 2697346  warning 36.0%), 4210599 citation (56.2%)
+#remaining 601583 (3.4%) are arrests, field interviews, psychiatric holds, etc
+
+table(all_traffic_2223$AgencyType, useNA = 'ifany') 
+#1=CHP: 3596271  (48.0%)
+#2=Sheriff: 1102611 (14.7%)
+#3=Municipal PD: 2711720    (36.2%)
+#4=College/Univ. PD: 49456    (0.7%)
+#5 = Other: 36763  (0.5%)
+
+
+```
+
